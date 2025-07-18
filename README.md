@@ -32,4 +32,4 @@ let's say every instruction is 3 bytes
 instructions  | bin file 1 | bin file 2 | bin file 3
 instruction 1 | lowest        middle      highest   order bytes of the instruction encoding
 
-i will be putting example files in the 
+i will be putting example files in the code files.
