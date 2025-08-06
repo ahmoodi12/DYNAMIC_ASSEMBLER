@@ -1,35 +1,107 @@
-# DYNAMIC_ASSEMBLER
+# Custom Assembler
 
-A simple yet powerful assembler that works with many CPU architectures by using an isa file or instruction set arcitecture file to define how it should assemble your assembly code.
+## Overview
 
-If you build a cpu either in logisim or on a breadboard or in an emulator-then this tool helps you go ahead and write and assemble code for it.
-
----
-
-## ✨ features
-
-- supports wide variety of architectures that have an isa json defined for them. (might have bugs therefore i don't ensure it working for all the isa's)
-  
-- easy to read and clean syntax
-  
-- supports Windows, macOS, and various Linux x64-based distros
+This is a Python-based assembler for a customizable CPU architecture defined via JSON ISA definitions. It supports assembling programs with flexible operand types, instruction formats, and pseudo-instructions.
 
 ---
 
-how it works:
+## Usage
 
-Input:
+```bash
+python {assembler.py} {program.asm} {isa_definition.json} [options]
+Options
+-d
+Generate an intermediate debug file to help follow processor execution instruction-by-instruction.
 
-- `.asm` file-your program
-- `.json` isa file-the instruction set architecture
--  optional parameters like memory size -s (default is defined in the isa file), output filename -o (default is the program file name with .bin extension) and spreading the instructions across multiple bin files -m
-  
-The assembler reads the isa, parses your code, and spits out a binary file for you to load into your cpu.
+-s
+Manually specify memory size.
 
-if using multi mem the instruction is split up into bytes and every order of bytes goes into it's own bin file incase you need to spread the instruction, i find it useful in breadboarding where roms and flash mem usally only have 1 byte of data. here's an example:
+-m
+Split instruction memory and data memory, allowing for multiple ROMs/RAMs (useful for hardware that has separate 8-bit ROM/RAM modules).
 
-let's say every instruction is 3 bytes
-instructions  | bin file 1 | bin file 2 | bin file 3
-instruction 1 | lowest        middle      highest   order bytes of the instruction encoding
+ISA Definition Format
+The assembler expects a JSON file describing the ISA, including:
 
-i will be putting example files in the code files.
+hardware: Architecture properties
+
+arcitecture (e.g., "harvard", "RISC")
+
+reg file size (e.g., 16 registers)
+
+inst size (instruction size in bytes)
+
+address width (bits)
+
+data width (bits)
+
+operand types: Regex patterns, aliases, and sizes for operand parsing
+(e.g., register r\d+, immediate numbers, addresses)
+
+opcodes: Mapping instruction names to opcode values.
+
+pseudo instructions: Macro-like expansions into one or more base instructions.
+
+syntax templates: Parameter types expected for each instruction form.
+
+syntax: Instruction syntax mappings to templates.
+
+encoding templates and encoding: Bit-level instruction encoding templates and instruction-specific encodings.
+
+Supported Parser Directives
+.def <name>, <operand>
+Define a label or variable as an operand value (e.g., .def a, r1).
+
+.byte <value>
+Define a single byte of data in memory.
+
+.org <address>
+Set the address for the next instruction or data to be assembled at.
+
+.include <file>
+Include another source file; supports Python-style indent scoping. Included file labels are visible to the parent but not vice versa.
+
+.start <address>
+Marks the start address for execution. If your ISA JSON has "start pointer addr", this address is written there.
+
+Features
+Supports flexible operand types and syntax based on the ISA JSON file.
+
+Supports pseudo-instructions which expand into multiple instructions.
+
+Indentation-based scoping for included files and label visibility.
+
+Intermediate debug output for step-by-step tracing.
+
+Manual memory sizing and separate memory segmentation options.
+
+Example ISA Snippet
+json
+Copy
+Edit
+{
+  "hardware": {
+    "arcitecture": ["harvard", "RISC"],
+    "reg file size": 16,
+    "inst size": 1,
+    "address width": 16,
+    "data width": 8
+  },
+  "operand types": {
+    "reg": {"aliases": ["register", "reg"], "re": "r(\\d+)", "size": 4},
+    "address": {"aliases": ["addr", "address"], "re": "\\$([+-]?(?:0x[0-9a-fA-F]+|0b[01]+|0o[0-7]+|\\d+))", "size": 16}
+    // ...
+  },
+  "opcodes": {
+    "nop": 4,
+    "mov": 11,
+    "ldi": 11,
+    // ...
+  },
+  "pseudo instructions": {
+    "inc": ["addi {op1}, 1, {op1}"],
+    "halt": ["HALT_:", "   jmp HALT_"]
+  },
+  // ...
+}
+If you have any questions about features, usage, or ISA format, feel free to ask!
