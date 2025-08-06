@@ -11,7 +11,7 @@ This is a Python-based assembler for a customizable CPU architecture defined via
 python {assembler.py} {program.txt
 } {isa_definition.json} [options]
 
-Options
+Options:
 
 -d
 Generate an intermediate debug file to help follow processor execution instruction-by-instruction.
