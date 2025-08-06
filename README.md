@@ -32,7 +32,7 @@ The assembler expects a JSON file describing the ISA, including:
 - **hardware**  
   - `arcitecture`: `"harvard"`, `"RISC"`, etc.  
   - `reg file size`: total number of general-purpose registers  
-  - `inst size`: instruction size in bytes  
+  - `inst size`: instruction size in address steps 
   - `address width`, `data width`: in bits
 
 - **operand types**: regex, aliases, and bit sizes for different operand formats
