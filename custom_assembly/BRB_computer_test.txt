@@ -1,0 +1,45 @@
+#python python_files\assemblers\assembler.py "custom_assembly\BRB_computer_test.txt" "isa_files\BRB_computer.json" -s 16
+
+.def text_disp, $0xfeff
+.def SP, r15
+
+
+.org $1
+clr r0
+clr r1
+clr r2
+clr r3
+clr r4
+clr r5
+clr r6
+clr r7
+clr r8
+clr r9
+clr r10
+clr r11
+clr r12
+clr r13
+clr r14
+clr r15
+
+jmp start
+
+.org $0x1234
+start:
+    ldi r1, "D"
+    ldi r2, "O"
+    ldi r3, 'N'
+    ldi r4, 'E'
+    call print_finish
+    halt
+
+
+
+.org $0xff00
+print_finish:
+    stoi text_disp, r1 
+    stoi text_disp, r2
+    stoi text_disp, r3
+    stoi text_disp, r4
+    return
+
