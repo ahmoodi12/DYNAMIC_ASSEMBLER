@@ -8,79 +8,80 @@ This is a Python-based assembler for a customizable CPU architecture defined via
 
 ## Usage
 
-python {assembler.py} {program.txt
-} {isa_definition.json} [options]
+```bash
+python assembler.py program.asm isa_definition.json [options]
+```
 
-Options:
+### Options
 
--d
-Generate an intermediate debug file to help follow processor execution instruction-by-instruction.
+- `-d`  
+  Generate an intermediate debug file showing each instruction step-by-step.
 
--s
-Manually specify memory size.
+- `-s`  
+  Manually specify memory size.
 
--m
-Split instruction memory and data memory, allowing for multiple ROMs/RAMs (useful for hardware that has separate 8-bit ROM/RAM modules).
+- `-m`  
+  Split machine code output into multiple files by byte order (e.g., low-order byte in one file, high-order in another, etc). Each file holds its respective byte from the final machine code word — useful for hardware that loads ROMs by byte-lane.
 
-ISA Definition Format
+---
+
+## ISA Definition Format
+
 The assembler expects a JSON file describing the ISA, including:
 
-hardware: Architecture properties
+- **hardware**  
+  - `arcitecture`: `"harvard"`, `"RISC"`, etc.  
+  - `reg file size`: total number of general-purpose registers  
+  - `inst size`: instruction size in bytes  
+  - `address width`, `data width`: in bits
 
-arcitecture (e.g., "harvard", "RISC")
+- **operand types**: regex, aliases, and bit sizes for different operand formats
 
-reg file size (e.g., 16 registers)
+- **opcodes**: map instruction names to numeric opcode values
 
-inst size (instruction size in bytes)
+- **pseudo instructions**: macro-expansions into real instructions
 
-address width (bits)
+- **syntax templates**: define operand types (e.g., `reg`, `imm`, etc.)
 
-data width (bits)
+- **syntax**: map instructions to their expected operand forms
 
-operand types: Regex patterns, aliases, and sizes for operand parsing
-(e.g., register r\d+, immediate numbers, addresses)
+- **encoding templates / encoding**: how each instruction is packed into bits
 
-opcodes: Mapping instruction names to opcode values.
+---
 
-pseudo instructions: Macro-like expansions into one or more base instructions.
+## Supported Directives
 
-syntax templates: Parameter types expected for each instruction form.
+- `.def <name>, <operand>`  
+  Assign a name to an operand (e.g., `.def SRC, r2`)
 
-syntax: Instruction syntax mappings to templates.
+- `.byte <value>`  
+  Insert a raw byte into memory
 
-encoding templates and encoding: Bit-level instruction encoding templates and instruction-specific encodings.
+- `.org <address>`  
+  Set current output address
 
-Supported Parser Directives
-.def <name>, <operand>
-Define a label or variable as an operand value (e.g., .def a, r1).
+- `.include <file>`  
+  Include another file; labels in the included file are **visible to the parent only**
 
-.byte <value>
-Define a single byte of data in memory.
+- `.start <address>`  
+  Set program start address (written to `"start pointer addr"` if ISA defines it)
 
-.org <address>
-Set the address for the next instruction or data to be assembled at.
+---
 
-.include <file>
-Include another source file; supports Python-style indent scoping. Included file labels are visible to the parent but not vice versa.
+## Features
 
-.start <address>
-Marks the start address for execution. If your ISA JSON has "start pointer addr", this address is written there.
+- ISA is fully JSON-defined, including syntax and encodings
+- Pseudo-instruction expansion system
+- Clean error messages with operand validation
+- Indentation-based local label and scope system
+- Output splitting for multi-ROM systems (`-m`)
+- Optional debug output (`-d`)
 
-Features
-Supports flexible operand types and syntax based on the ISA JSON file.
+---
 
-Supports pseudo-instructions which expand into multiple instructions.
+## Example ISA Snippet
 
-Indentation-based scoping for included files and label visibility.
-
-Intermediate debug output for step-by-step tracing.
-
-Manual memory sizing and separate memory segmentation options.
-
-Example ISA Snippet
-json
-Copy
-Edit
+```json
 {
   "hardware": {
     "arcitecture": ["harvard", "RISC"],
@@ -90,20 +91,29 @@ Edit
     "data width": 8
   },
   "operand types": {
-    "reg": {"aliases": ["register", "reg"], "re": "r(\\d+)", "size": 4},
-    "address": {"aliases": ["addr", "address"], "re": "\\$([+-]?(?:0x[0-9a-fA-F]+|0b[01]+|0o[0-7]+|\\d+))", "size": 16}
-    // ...
+    "reg": {
+      "aliases": ["register", "reg"],
+      "re": "r(\\d+)",
+      "size": 4
+    },
+    "address": {
+      "aliases": ["addr", "address"],
+      "re": "\\$([+-]?(?:0x[0-9a-fA-F]+|0b[01]+|0o[0-7]+|\\d+))",
+      "size": 16
+    }
   },
   "opcodes": {
     "nop": 4,
     "mov": 11,
-    "ldi": 11,
-    // ...
+    "ldi": 11
   },
   "pseudo instructions": {
     "inc": ["addi {op1}, 1, {op1}"],
     "halt": ["HALT_:", "   jmp HALT_"]
-  },
-  // ...
+  }
 }
-If you have any questions about features, usage, or ISA format, feel free to ask!
+```
+
+---
+
+If you're reading this and want to contribute, test, or learn how to write an ISA — feel free to fork or open an issue!
