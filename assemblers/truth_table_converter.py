@@ -75,19 +75,24 @@ class EvalExpr(Transformer):
 parser = Lark(grammar, start='start')
 
 class TruthTableConverter:
-    def convert(self, input_file: Path, output_file, size: int = 0) -> None:
+    def convert(self, input_file: Path, output_file: Path, multi_mem, endian_format, rom_data_width, mem_size: int = 0) -> None:
         self.init(input_file)
         self.find_definitions()
         #out_bytes = ut.dict_value_into_bytes(self.parse_truth_table())
-        out_bytes = self.parse_truth_table()
+        mem_map = self.parse_truth_table()
 
-        if not len(out_bytes):
+        if not len(mem_map):
             self.error("there was no truth table in the input file")
-        if not size:
-            size = 2**(max(out_bytes.keys())).bit_length() # type: ignore
+        if not mem_size:
+            mem_size = 2**(max(mem_map.keys())).bit_length() # type: ignore
             
-        #ut.make_bin_file(output_file, out_bytes, size)
-        ut.make_logisim_file(output_file, out_bytes, size)
+        if multi_mem:
+            for i, Bytearray in enumerate(ut.spread_dict_values(mem_map)):
+                ut.make_file(output_file.with_suffix(f"{i+1}{output_file.suffix}"), Bytearray, mem_size, endian_format)
+            
+        else:
+            ut.make_file(output_file, mem_map, mem_size, endian_format, data_size=rom_data_width) # pyright: ignore[reportArgumentType]
+
 
     
     def init(self, input_file: Path) -> None:
@@ -162,7 +167,7 @@ class TruthTableConverter:
                     self.error("Too many variables; any extras will be ignored", line_s=variable_line_text + "\n" + self.line, warn=True)
 
                 for expanded_inputs in self.expand_wildcards(raw_inputs):
-                    variables = {variable_names[i]: ut.from_base_to_bin(input_val, self.input_base)  for i, input_val in enumerate(expanded_inputs)}
+                    variables = {variable_names[i]: ut.from_base_to_bin(input_val, self.input_base)  for i, input_val in enumerate(expanded_inputs)} if variable_names else {}
 
                     output_values = []
                     evaluator = EvalExpr(self.output_base, variables)
@@ -235,19 +240,21 @@ if __name__ == "__main__":
     argparser.add_argument("-o", "--output", type=Path, help="Path for the output binary file")
     argparser.add_argument("-s", "--size", default=None, type=int, help="the address width of the mem module")
     argparser.add_argument("-m", "--multi", action="store_true", help="Enable multi-file output (only needed for multi-byte ISA instructions)")
+    argparser.add_argument("-f", "--format", type=str, default="bin", help= "what format the output file should have")
+    argparser.add_argument("-e", "--endian", type=str, default="big", help= "if the file is in binary or logisim format then this is needed.")
+    argparser.add_argument("-d", "--data_width", type=int, default=8, help= "the data width of the rom")
 
     args = argparser.parse_args()
 
     # Resolve all paths to absolute
     input_path: Path = args.program
-    output_path = args.output if args.output else input_path
+    output_path = args.output.with_suffix("." + args.format) if args.output else input_path.with_suffix("." + args.format)
     binary_size = args.size
-    if binary_size is not None: binary_size = 2**binary_size
 
     if not input_path.is_file():
         print(f"Program file not found: {args.program}")
         exit()
 
     start = time.time()
-    TruthTableConverter().convert(input_path, output_path, binary_size)
+    TruthTableConverter().convert(input_path, output_path, args.multi, args.endian, args.data_width, binary_size)
     print(f"completed in {(time.time() - start):.4f}s")

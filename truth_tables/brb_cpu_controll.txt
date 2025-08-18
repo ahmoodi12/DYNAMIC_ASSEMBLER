@@ -1,0 +1,151 @@
+
+in = BIN
+out = BIN
+
+/* 
+    JMP_ABS  BUS_SEL  F_W   BE   AE   WE   F_Q   
+      x         x      x    x    x    x     x    
+    B_IMM   MEM_R   MEM_W   JMR_SEL   B_ADDR   BF_PC  
+      x       x       x        x         x      x
+    M_OP     D_SEL     BA       AA       WA
+    xxxx      xxx     xxxx     xxxx     xxxx 
+*/ 
+
+
+
+| a | b | c | d | e | f | g | h | i | j | k | l | m | n | o | p |
+| x | x | x | x | x | x | x | x | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 -> 1_0_0_1_1_0_0_0_0_0_1_0_0_0000_000 | e | f | g | h | a | b | c | d | 0000                # JMPR
+| x | x | x | x | x | x | x | x | 0 | 0 | 0 | 1 | 0 | 1 | 0 | 0 -> 0_0_0_0_0_1_0_0_0_0_0_0_0_0000_100_0000_0000 | a | b | c | d                             # LODPCL
+| x | x | x | x | x | x | x | x | 0 | 0 | 1 | 0 | 0 | 1 | 0 | 0 -> 0_0_0_0_0_1_0_0_0_0_0_0_0_0000_101_0000_0000 | a | b | c | d                             # LODPCH
+| 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 0 | 1 | 0 | 0 -> 0_0_0_0_0_0_0_0_0_0_0_0_1_0000_000_0000_0000_0000                                        # BFPC
+| 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 1 | 0 | 0 -> 0000_0000_0000_0000__0000_0000_0000_0000                                                 # NOP 
+
+| 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 1 | 1 -> 0_0_0_1_0_1_0_0_0_0_0_0_0_0000_000 | a | b | c | d |  0000 | e | f | g | h               # MOV 
+| x | x | x | x | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 0 | 1 | 1 -> 0_0_0_0_0_1_0_0_0_0_0_0_0_0000_011_0000_0000 | a | b | c | d                             # LDI 
+| x | x | x | x | x | x | x | x | 0 | 0 | 1 | 0 | 1 | 0 | 1 | 1 -> 0_0_0_1_0_1_0_0_1_0_0_1_0_0000_001 | a | b | c | d |  0000 | e | f | g | h               # LOD 
+| x | x | x | x | x | x | x | x | 0 | 0 | 1 | 1 | 1 | 0 | 1 | 1 -> 0_0_0_1_1_0_0_0_0_1_0_1_0_0000_110 | a | b | c | d | e | f | g | h | 0000                # STO
+| 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 1 | 0 | 1 | 1 -> 0_1_1_0_0_0_0_0_0_0_0_0_0_0000_011_0000_0000_0000                                        # LDIF REG, IMM
+| x | x | x | x | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 1 | 1 | 0 | 1 | 1 -> 0_0_0_0_0_1_1_0_0_0_0_0_0_0000_000_0000_0000 | a | b | c | d |                           # MOVF FLAGS, REG
+| x | x | x | x | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 0 | 1 | 0 | 1 | 1 -> 0_1_1_1_0_0_0_0_0_0_0_0_0_0000_000 | a | b | c | d | 0000_0000                           # MOVF REG, FLAGS
+
+| x | x | x | x | x | x | x | x | x | x | x | x | 1 | 1 | 0 | 0 -> 0_0_0_0_0_1_0_0_1_0_0_0_0_0000_001_0000_0000 | i | j | k | l                             # LODI 
+| x | x | x | x | x | x | x | x | x | x | x | x | 1 | 1 | 0 | 1 -> 0_0_0_0_1_0_0_0_0_1_0_0_0_0000_110_0000 | i | j | k | l | 0000                           # STOI
+
+| x | x | x | x | x | x | x | x | x | x | x | x | 0 | 0 | 0 | 0 -> 0_0_1_1_1_1_0_0_0_0_0_0_0_0000_010 | e | f | g | h | a | b | c | d | i | j | k | l       # ADD
+| x | x | x | x | x | x | x | x | x | x | x | x | 0 | 0 | 0 | 1 -> 0_0_1_1_1_1_0_0_0_0_0_0_0_0001_010 | e | f | g | h | a | b | c | d | i | j | k | l       # ADC
+| x | x | x | x | x | x | x | x | x | x | x | x | 0 | 0 | 1 | 0 -> 0_0_1_1_1_1_0_0_0_0_0_0_0_0010_010 | e | f | g | h | a | b | c | d | i | j | k | l       # SUB
+| x | x | x | x | x | x | x | x | x | x | x | x | 0 | 0 | 1 | 1 -> 0_0_1_1_1_1_0_0_0_0_0_0_0_0011_010 | e | f | g | h | a | b | c | d | i | j | k | l       # SBC
+| x | x | x | x | x | x | x | x | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 1 -> 0_0_1_1_0_1_0_0_0_0_0_0_0_0100_010 | a | b | c | d | 0000 | e | f | g | h                # NOT  
+| x | x | x | x | x | x | x | x | 0 | 0 | 0 | 1 | 0 | 1 | 0 | 1 -> 0_0_1_1_0_1_0_0_0_0_0_0_0_0101_010 | a | b | c | d | 0000 | e | f | g | h                # NEG
+| x | x | x | x | x | x | x | x | x | x | x | x | 0 | 1 | 1 | 0 -> 0_0_1_1_1_1_0_0_0_0_0_0_0_0110_010 | e | f | g | h | a | b | c | d | i | j | k | l       # OR
+| x | x | x | x | x | x | x | x | x | x | x | x | 0 | 1 | 1 | 1 -> 0_0_1_1_1_1_0_0_0_0_0_0_0_0111_010 | e | f | g | h | a | b | c | d | i | j | k | l       # AND
+| x | x | x | x | x | x | x | x | x | x | x | x | 1 | 0 | 0 | 0 -> 0_0_1_1_1_1_0_0_0_0_0_0_0_1000_010 | e | f | g | h | a | b | c | d | i | j | k | l       # XOR
+| x | x | x | x | x | x | x | x | 0 | 0 | 1 | 0 | 0 | 1 | 0 | 1 -> 0_0_1_0_1_1_0_0_0_0_0_0_0_1001_010_0000 | a | b | c | d | e | f | g | h                  # RSH
+| x | x | x | x | x | x | x | x | 0 | 0 | 1 | 1 | 0 | 1 | 0 | 1 -> 0_0_1_0_1_1_0_0_0_0_0_0_0_1010_010_0000 | a | b | c | d | e | f | g | h                  # RSHC
+| x | x | x | x | x | x | x | x | 0 | 1 | 0 | 0 | 0 | 1 | 0 | 1 -> 0_0_1_0_1_1_0_0_0_0_0_0_0_1011_010_0000 | a | b | c | d | e | f | g | h                  # LSH
+| x | x | x | x | x | x | x | x | 0 | 1 | 0 | 1 | 0 | 1 | 0 | 1 -> 0_0_1_0_1_1_0_0_0_0_0_0_0_1100_010_0000 | a | b | c | d | e | f | g | h                  # LSHC
+| x | x | x | x | x | x | x | x | 0 | 1 | 1 | 0 | 0 | 1 | 0 | 1 -> 0_0_1_0_1_1_0_0_0_0_0_0_0_1101_010_0000 | a | b | c | d | e | f | g | h                  # RSHA
+| x | x | x | x | x | x | x | x | 0 | 1 | 1 | 1 | 1 | 1 | 1 | 0 -> 0_0_1_1_1_0_0_0_0_0_0_0_0_0010_000 | e | f | g | h | a | b | c | d | 0000                # CMP
+| x | x | x | x | x | x | x | x | 1 | 0 | 0 | 0 | 1 | 1 | 1 | 1 -> 0_0_1_1_1_0_0_0_0_0_0_0_0_0111_000 | e | f | g | h | a | b | c | d | 0000                # TEST
+
+| x | x | x | x | x | x | x | x | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 1 -> 0_0_1_0_1_1_0_1_0_0_0_0_0_0000_010_0000 | a | b | c | d | e | f | g | h                  # imm ADD
+| x | x | x | x | x | x | x | x | 0 | 0 | 0 | 1 | 1 | 0 | 0 | 1 -> 0_0_1_0_1_1_0_1_0_0_0_0_0_0001_010_0000 | a | b | c | d | e | f | g | h                  # imm ADC
+| x | x | x | x | x | x | x | x | 0 | 0 | 1 | 0 | 1 | 0 | 0 | 1 -> 0_0_1_0_1_1_0_1_0_0_0_0_0_0010_010_0000 | a | b | c | d | e | f | g | h                  # imm SUB
+| x | x | x | x | x | x | x | x | 0 | 0 | 1 | 1 | 1 | 0 | 0 | 1 -> 0_0_1_0_1_1_0_1_0_0_0_0_0_0011_010_0000 | a | b | c | d | e | f | g | h                  # imm SBC
+| x | x | x | x | x | x | x | x | 0 | 1 | 1 | 0 | 1 | 0 | 0 | 1 -> 0_0_1_0_1_1_0_1_0_0_0_0_0_0110_010_0000 | a | b | c | d | e | f | g | h                  # imm OR
+| x | x | x | x | x | x | x | x | 0 | 1 | 1 | 1 | 1 | 0 | 0 | 1 -> 0_0_1_0_1_1_0_1_0_0_0_0_0_0111_010_0000 | a | b | c | d | e | f | g | h                  # imm AND
+| x | x | x | x | x | x | x | x | 1 | 0 | 0 | 0 | 1 | 0 | 0 | 1 -> 0_0_1_0_1_1_0_1_0_0_0_0_0_1000_010_0000 | a | b | c | d | e | f | g | h                  # imm XOR
+| 0 | 0 | 0 | 0 | x | x | x | x | 1 | 0 | 1 | 0 | 1 | 0 | 0 | 1 -> 0_0_1_0_0_1_0_1_0_0_0_0_0_1010_010_0000_0000 | e | f | g | h                             # imm RSHC
+| 0 | 0 | 0 | 0 | x | x | x | x | 1 | 1 | 0 | 0 | 1 | 0 | 0 | 1 -> 0_0_1_0_0_1_0_1_0_0_0_0_0_1100_010_0000_0000 | e | f | g | h                             # imm LSHC
+| x | x | x | x | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 0 | 1 | 0 | 0 | 1 -> 0_0_1_0_1_0_0_1_0_0_0_0_0_0010_010_0000 | a | b | c | d | 0000                           # imm CMP
+| x | x | x | x | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 1 -> 0_0_1_0_1_0_0_1_0_0_0_0_0_0111_010_0000 | a | b | c | d | 0000                           # imm TEST
+
+| x | x | x | x | x | x | x | x | 0 | 0 | 0 | 0 | 1 | 0 | 1 | 0 -> 1_0_0_0_0_0_0_0_0_0_0_0_0_0000_000_0000_0000_0000                                        # BRANCH ALWAYS
+| x | x | x | x | x | x | x | x | 0 | 0 | 0 | 1 | 1 | 0 | 1 | 0 -> 1_0_0_0_0_0_0_0_0_0_0_0_0_0000_000_0000_0000_0000                                        # BRANCH IF ZERO == 1                    
+| x | x | x | x | x | x | x | x | 0 | 0 | 1 | 0 | 1 | 0 | 1 | 0 -> 1_0_0_0_0_0_0_0_0_0_0_0_0_0000_000_0000_0000_0000                                        # BRANCH IF NEGATIVE == 1 (SIGNED <)     
+| x | x | x | x | x | x | x | x | 0 | 0 | 1 | 1 | 1 | 0 | 1 | 0 -> 1_0_0_0_0_0_0_0_0_0_0_0_0_0000_000_0000_0000_0000                                        # BRANCH IF NEGATIVE == 0 (SIGNED ≥)     
+| x | x | x | x | x | x | x | x | 0 | 1 | 0 | 0 | 1 | 0 | 1 | 0 -> 1_0_0_0_0_0_0_0_0_0_0_0_0_0000_000_0000_0000_0000                                        # BRANCH IF CARRY == 1 (UNSIGNED >)      
+| x | x | x | x | x | x | x | x | 0 | 1 | 0 | 1 | 1 | 0 | 1 | 0 -> 1_0_0_0_0_0_0_0_0_0_0_0_0_0000_000_0000_0000_0000                                        # BRANCH IF CARRY == 0 (UNSIGNED ≤)      
+| x | x | x | x | x | x | x | x | 0 | 1 | 1 | 0 | 1 | 0 | 1 | 0 -> 1_0_0_0_0_0_0_0_0_0_0_0_0_0000_000_0000_0000_0000                                        # BRANCH IF ZERO == 0 (NOT EQUAL)        
+| x | x | x | x | x | x | x | x | 0 | 1 | 1 | 1 | 1 | 0 | 1 | 0 -> 1_0_0_0_0_0_0_0_0_0_0_0_0_0000_000_0000_0000_0000                                        # BRANCH IF SIGNED > (~Z & ~(N^V))       
+| x | x | x | x | x | x | x | x | 1 | 0 | 0 | 0 | 1 | 0 | 1 | 0 -> 1_0_0_0_0_0_0_0_0_0_0_0_0_0000_000_0000_0000_0000                                        # BRANCH IF SIGNED ≤ (Z | (N^V))         
+| x | x | x | x | x | x | x | x | 1 | 0 | 0 | 1 | 1 | 0 | 1 | 0 -> 1_0_0_0_0_0_0_0_0_0_0_0_0_0000_000_0000_0000_0000                                        # BRANCH IF C == 0 && Z == 0 (UNSIGNED <)
+| x | x | x | x | x | x | x | x | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 -> 1_0_0_0_0_0_0_0_0_0_0_0_0_0000_000_0000_0000_0000                                        # BRANCH IF C == 1 || Z == 1 (UNSIGNED ≥)
+| x | x | x | x | x | x | x | x | 1 | 1 | 1 | 0 | 1 | 0 | 1 | 0 -> 1_0_0_0_0_0_0_0_0_0_0_0_0_0000_000_0000_0000_0000                                        # BRANCH IF N == 0 && Z == 0 (POSITIVE)  
+| x | x | x | x | x | x | x | x | 1 | 1 | 1 | 1 | 1 | 0 | 1 | 0 -> 1_0_0_0_0_0_0_0_0_0_0_0_0_0000_000_0000_0000_0000                                        # BRANCH IF OVERFLOW == 1                
+| x | x | x | x | x | x | x | x | 1 | 1 | 0 | 0 | 1 | 0 | 1 | 0 -> 1_0_0_0_0_0_0_0_0_0_0_0_0_0000_000_0000_0000_0000                                        # BRANCH IF OVERFLOW == 0
+
+
+
+
+/*
+used fa/ opcodes:
+0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
+ 
+miscellaneous:
+0000 0000   AAAA BBBB   0000 0100   JMPR
+0000 0000   AAAA 0000   0001 0100   LODPCL
+0000 0000   AAAA 0000   0010 0100   LODPCH
+0000 0000   0000 0000   0011 0100   BFPC   
+0000 0000   0000 0000   0100 0100   NOP
+ 
+MEMORY:
+0000 0000   AAAA CCCC   0000 1011   MOV REG, REG
+IIII IIII   BBBB 0000   0001 1011   LDI REG, IMM
+IIII IIII   BBBB CCCC   0010 1011   LOD ADDR, DEST
+IIII IIII   BBBB CCCC   0011 1011   STO ADDR, SOURCE
+IIII IIII   BBBB 0000   0100 1011   LDIF REG, IMM
+0000 0000   AAAA 0000   0101 1011   MOVF FLAGS, REG
+0000 0000   AAAA 0000   0110 1011   MOVF REG, FLAGS
+
+SPECIAL MEM:
+IIII IIII   IIII IIII   BBBB 1100   LODI ADDR, IMM
+IIII IIII   IIII IIII   BBBB 1101   STOI ADDR, IMM
+ 
+ALU:
+0000 0000   AAAA BBBB   CCCC 0000   ADD
+0000 0000   AAAA BBBB   CCCC 0001   ADC
+0000 0000   AAAA BBBB   CCCC 0010   SUB
+0000 0000   AAAA BBBB   CCCC 0011   SBC
+0000 0000   AAAA BBBB   0000 0101   NOT
+0000 0000   AAAA BBBB   0001 0101   NEG
+0000 0000   AAAA BBBB   CCCC 0110   OR
+0000 0000   AAAA BBBB   CCCC 0111   AND
+0000 0000   AAAA BBBB   CCCC 1000   XOR
+0000 0000   AAAA BBBB   0010 0101   RSH
+0000 0000   AAAA BBBB   0011 0101   RSHC
+0000 0000   AAAA BBBB   0100 0101   LSH
+0000 0000   AAAA BBBB   0101 0101   LSHC
+0000 0000   AAAA BBBB   0110 0101   RSHA
+0000 0000   AAAA BBBB   0111 0101   CMP
+0000 0000   AAAA BBBB   1000 0101   TEST
+ 
+ALU IMM:
+IIII IIII   AAAA CCCC   0000 1001   ADDI
+IIII IIII   AAAA CCCC   0001 1001   ADCI
+IIII IIII   AAAA CCCC   0010 1001   SUBI
+IIII IIII   AAAA CCCC   0011 1001   SBCI
+IIII IIII   AAAA CCCC   0110 1001   ORI
+IIII IIII   AAAA CCCC   0111 1001   ANDI
+IIII IIII   AAAA CCCC   1000 1001   XORI
+IIII IIII   0000 BBBB   1010 1001   RSHCI
+IIII IIII   0000 BBBB   1100 1001   LSHCI
+IIII IIII   AAAA 0000   1110 1001   CMPI
+IIII IIII   AAAA 0000   1111 1001   TESTI
+        
+ 
+BRANCH ABS:
+IIII IIII   IIII IIII   0000 1010     BRANCH ALWAYS
+IIII IIII   IIII IIII   0001 1010     BRANCH IF ZERO == 1                    
+IIII IIII   IIII IIII   0010 1010     BRANCH IF NEGATIVE == 1 (SIGNED <)     
+IIII IIII   IIII IIII   0011 1010     BRANCH IF NEGATIVE == 0 (SIGNED ≥)     
+IIII IIII   IIII IIII   0100 1010     BRANCH IF CARRY == 1 (UNSIGNED >)      
+IIII IIII   IIII IIII   0101 1010     BRANCH IF CARRY == 0 (UNSIGNED ≤)      
+IIII IIII   IIII IIII   0110 1010     BRANCH IF ZERO == 0 (NOT EQUAL)        
+IIII IIII   IIII IIII   0111 1010     BRANCH IF SIGNED > (~Z & ~(N^V))       
+IIII IIII   IIII IIII   1000 1010     BRANCH IF SIGNED ≤ (Z | (N^V))         
+IIII IIII   IIII IIII   1001 1010     BRANCH IF C == 0 && Z == 0 (UNSIGNED <)
+IIII IIII   IIII IIII   1010 1010     BRANCH IF C == 1 || Z == 1 (UNSIGNED ≥)
+IIII IIII   IIII IIII   1011 1010     BRANCH IF N == 0 && Z == 0 (POSITIVE)  
+IIII IIII   IIII IIII   1100 1010     BRANCH IF OVERFLOW == 1                
+IIII IIII   IIII IIII   1101 1010     BRANCH IF OVERFLOW == 0

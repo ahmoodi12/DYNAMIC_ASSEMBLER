@@ -1,0 +1,104 @@
+
+# conditions
+.def true,     @0      // always true (JMP)
+.def z,       @1      // zero (Z = 1)
+.def eq,       @1      // equal (Z = 1)
+.def ne,       @2      // negative (N = 1)
+.def nn,       @3      // non-negative (N = 0)
+.def ca,       @4      // carry set (C = 1)
+.def nc,       @5      // carry clear (C = 0)
+.def nz,      @6      // not zero (Z = 0)
+.def neq,       @1      // not equal (Z = 1)
+.def sgt,      @7      // signed greater than (S >)
+.def sltz,    @8      // signed less than or zero (S ≤)
+.def ugt,      @9      // unsigned greater than (!(C & Z))
+.def ultz,    @10     // unsigned less than or zero (C | Z = 1)
+.def sgtnz,    @11     // signed greater than (!(N & Z))
+.def ov,       @12     // overflow set (OV = 1)
+.def nov,      @13     // overflow clear (OV = 0)
+
+# registers
+.def sp, r13
+.def flags, r14
+.def pc, r15
+
+# mem mappings
+.def text_disp, $0xf6f0
+.def rom_start, $0xf6f1
+.def rom_end, $0xf6f2
+.def buttons, $0xf6f4
+.def keyboard, $0xf6f5
+.def int_ret, $0xf6f6
+.def int_stat, $0xf6f7
+.def BIOS, $0xf700
+.def screen, $0xf800
+
+# flags
+.def int_enable 0b10000     # 0x10
+.def overflow,  0b01000     # 0x8
+.def carry,     0b00100     # 0x4
+.def negativ,   0b00010     # 0x2
+.def zero,      0b00001     # 0x1
+
+
+.org $0xf770
+
+.func
+print_str:      // prints from pointer in r1
+    push r2
+    jmpi true, start
+    loop:
+        stoi true, text_disp, r2
+    start:
+        lod true, r1, r2
+        inc r1
+        cmpi r2, 0  
+        jmpi nz, loop
+    pop r2
+    ret
+
+.func
+clr_text:
+    push r0
+    ldi true, r0, 0x80
+    stoi true, text_disp, r0
+    pop r0
+    ret
+
+.func
+check_for_str_in_keyboard:  // pointer in r1, returns the result in the the carry flag, other flags unchanged
+    push r3
+
+    loop:
+        # get char from keyboard
+        lodi true, keyboard, r2
+        testi r2, 0x80                  # check if keyboard is empty
+        jmpi z, keyboard_empty
+        andi r2, 0x7f, r2               # get the ascii 7 bits 
+        
+        # get expected char
+        lod true, r1, r3
+        inc r1               
+
+        # check if end of exp str
+        cmpi r3, 0
+        jmpi eq, same
+
+        # compare the chars
+        cmp r3, r2
+        jmpi nz, not_same
+
+        jmpi true, loop
+        
+    same:
+        ori flags, carry, flags     // set carry
+        jmpi true, end
+
+    keyboard_empty:
+    not_same:
+        testi r3, 0     // clear carry
+    
+    end:
+        pop r3
+        ret
+    
