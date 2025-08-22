@@ -1,0 +1,13 @@
+GAL16V8
+ALU-DECODER
+
+CLOCK NC NC NC NC M3 M2 M1 M0 GND
+/OE   C0 C1 S0 S1 L0 L1 L2 NC VCC
+
+C1 = M2 * /M1 * /M0 + M3 * M1 * /M0
+C0 = /M3 * /M2 * M1 * /M0 + M2 * /M1 * /M0
+S1 = /M3 * M2 + /M2 * M1
+S0 = /M3 * M2 + /M2 * /M1 * M0
+L2 = M3 * /M2 * /M1
+L1 = /M3 * M1 * M0 + /M2 * M1 * /M0
+L0 = M0 * /M1 * /M2 + M0 * /M3 * /M2

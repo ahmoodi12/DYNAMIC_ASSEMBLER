@@ -13,7 +13,7 @@ label = re.compile(r"\w+")
 #operand = re.compile(fr"r\d+|{digit.pattern}|\${digit.pattern}|\w+")
 Mnemonic = re.compile(r"\s*(\w+)")
 txt_file = re.compile(r"\w+\.txt")
-directive_syntax = {".func": [], ".start": ["address"], ".def": ["variable", "operand"], ".val": [["value", "list"]], ".org": ["address"], ".include": ["file"]}
+directive_syntax = {".block": [], ".start": ["address"], ".def": ["variable", "operand"], ".num": [["value", "list"]], ".org": ["address"], ".include": ["file"]}
 dir_op_types = {
         "value": {
             "aliases": ["val", "value"],
@@ -59,7 +59,7 @@ DEFAULT_OP_TYPES = {
             "size": 16,
             "convertable": True
         },
-    "variable": {"aliases": ["var", "variable"], "re": "(\\w+)", "convertable": False}, 
+    "variable": {"aliases": ["var", "variable"], "re": "([a-zA-Z_]+)", "convertable": False}, 
 }
 ISA_KEYS = {
     "opcodes": ["opcodes", "instructions", "insts"],
@@ -210,12 +210,17 @@ def print_addr_data_table(data_dict):
 
 def string_to_ord_list(line: str) -> str:
     def replacer(match):
+        nums = ""
         s = match.group(2)
         # Decode all escape sequences like \n, \r, \t, \\, etc.
         s = bytes(s, "utf-8").decode("unicode_escape")
         # Convert each character to its ASCII/Unicode code and return as a string
-        return str([ord(c) for c in s])
-    
+        sep = ", "
+        for i, c in enumerate(s):
+            nums += str(ord(c)) + sep
+            if i == len(s) - 1:
+                sep = ""
+        return nums
     # Replace all quoted strings in the line
     return re.sub(r"(['\"])(.*?)\1", replacer, line)
 
@@ -253,14 +258,19 @@ class ParsedLine:
     indent_level: int
     line_nr: int
     pseudo: bool
-    func_name: str | None = None 
+    in_func: bool
     
 
 @dataclass
 class Function:
     name: str
     scope: int
+    start_addr: int
+    stop_addr: int = 0
     local_labels:  list[dict] = field(default_factory=list)
+    global_labels:  list[dict] = field(default_factory=list)
+    indents: list = field(default_factory=list)
+    
 
 class Assembler:
     def run(self, program_file: Path, isa_file: Path, output_file: Path, mem_size: int, multi_mem, debug, endian_format):
@@ -291,13 +301,6 @@ class Assembler:
             elif arch == "cisc":
                 mem_map[addr] = num
 
-        for addr in mem_map.keys():
-            if addr in self.vals:
-                inst_line = next((inst.org_line for inst in insts if inst.address in range(addr, addr + self.address_steps)), '<unknown>')
-
-                self.error(
-            f"collision! the value '{self.vals[addr]}' or in ascii '{chr(self.vals[addr])}' and the instruction "
-            f"'{inst_line.strip()}' share the same address of {hex(addr)}", line_s=inst_line)
         mem_map |= self.vals
         #print_addr_data_table(mem_map)
 
@@ -339,11 +342,13 @@ class Assembler:
             else:
                 self.address_steps = None
 
+            self.isa["op types"] |= DEFAULT_OP_TYPES
             dir_op_types |= self.isa["op types"]
             self.debug_file = debug_file
             self.multi_mem = multi_mem
             self.parsed_lines:list[ParsedLine] = []
             self.vals = {}
+            self.val_origins = {}
             self.labels = [{}]
             self.variables = {}
             self.original_lines = self.whole_program.splitlines()
@@ -359,7 +364,8 @@ class Assembler:
     def parse_program(self, size):  
         self.mem_size = size
         prev_indent = 0  
-        next_higher_indent = 0  
+        next_higher_indent = 0 
+        prev_label = None 
         multi_line_comment = None
         current_func = None
         got_warned_abt_func_behavior = next_is_func = False
@@ -397,7 +403,7 @@ class Assembler:
             current_indent = get_indent_count(self.line)
             
             if next_higher_indent and prev_indent >= current_indent:
-                self.error("there should to be an indentation after a label.", self.line.strip(), f"{self.overlooked_part[-1]}\n{self.original_line}", warn = not next_is_func) # type: ignore
+                self.error("there should to be an indentation after a label.", self.line.strip(), f"{prev_label}\n{self.original_line}", warn = not next_is_func) # type: ignore
             
             if not next_higher_indent and current_indent > prev_indent: 
                 self.error("indent increased unexpectedly.",  self.line.strip()[0], f"{self.overlooked_part[-1]}\n{self.original_line}", warn = True) # type: ignore
@@ -405,8 +411,12 @@ class Assembler:
             next_higher_indent = False
             
             if all(current_indent > indent for indent in self.indents):
-                self.indents.append(current_indent)
-                self.labels.append({})
+                if current_func is not None:
+                    current_func.indents.append(current_indent)
+                    current_func.local_labels.append({})
+                else:
+                    self.indents.append(current_indent)
+                    self.labels.append({})
 
             if current_indent not in self.indents:
                 self.error("indent amount does not match any other indent amount.", self.line.strip()[0]) # type: ignore
@@ -414,19 +424,15 @@ class Assembler:
             self.current_indent_level = self.indents.index(current_indent)
             prev_indent = current_indent
 
-            
             if current_func is not None and self.current_indent_level < current_func.scope: # pyright: ignore[reportOptionalMemberAccess]
-                current_func.local_labels = self.labels[current_func.scope:]
-                self.labels = self.labels[:current_func.scope]
-                self.indents = self.indents[:current_func.scope]
+                current_func.stop_addr = self.address # pyright: ignore[reportAttributeAccessIssue]
                 current_func = None
                 
-        
             mnemonic = 0
             # groups: 1 = dir, 2 = sep, 3 = params
-            directive = re.match(r"\s*(\.\w+)(,|\s+)?(.+)?", self.line) # type: ignore
+            directive:re.Match = re.match(r"\s*(\.\w+)(,|\s+)?(.+)?", self.line) # type: ignore
             # groups: 1 = full label, 2 = underscores
-            label = re.match(r"\s*((__)?\w+):", self.line) # type: ignore
+            label:re.Match = re.match(r"\s*((__)?\w+):", self.line) # type: ignore
             
             if directive is not None:
                 if directive.group(1) not in directive_syntax:
@@ -459,13 +465,19 @@ class Assembler:
                 else:
                     if label.group(1) in get_current_scope(self.labels, self.current_indent_level):
                         self.error(f"the local labels '{label.group(1)}' match eachother.", label.group(1), warn=True)
-
-                    self.labels[self.current_indent_level][label.group(1)] = f"${self.address}"
+                    if current_func is not None:
+                        current_func.local_labels[self.current_indent_level][label.group(1)] = f"${self.address}"
+                    else:
+                        self.labels[self.current_indent_level][label.group(1)] = f"${self.address}"
                 
                 if next_is_func:
-                    current_func = Function(label.group(1), self.current_indent_level + 1)
+                    current_func = Function(label.group(1), self.current_indent_level + 1,
+                                            self.address, global_labels=self.labels, # pyright: ignore[reportArgumentType]
+                                            local_labels=[{} for _ in range(len(self.indents))], indents=self.indents) # pyright: ignore[reportArgumentType]
                     self.funcs.append(current_func)
                     next_is_func = False
+                
+                prev_label = self.original_line
 
             # address calculation and final parsing
             mnemonic = get_mnemonic(self.line)
@@ -493,14 +505,17 @@ class Assembler:
                         ParsedLine(self.line.strip(),  #  # pyright: ignore[reportAttributeAccessIssue]
                                    self.address,  # pyright: ignore[reportArgumentType]
                                    self.current_indent_level, len(self.overlooked_part)-1,
-                                   (self.current_pseudo_lines[0] > 0), getattr(current_func, "name", None))) # type: ignore                    
+                                   (self.current_pseudo_lines[0] > 0), (current_func is not None))) # type: ignore                    
 
-                self.calc_address(mnemonic)
+                    self.calc_address(mnemonic)
                 continue
 
             if self.current_pseudo_lines[0] == 0:
                 self.overlooked_part.append(self.original_line)
 
+        if current_func is not None:
+            current_func.stop_addr = self.address # pyright: ignore[reportAttributeAccessIssue]
+            
         if multi_line_comment:
             self.error("unclosed multiline comment. anything after it will be ignored", "/*", multi_line_comment, warn=True)
 
@@ -513,9 +528,9 @@ class Assembler:
             self.address = self.line.address
             colliding_line = next((line for line in self.parsed_lines if line.address == self.address and line != self.line), None)
             if colliding_line is not None:
-                colliding_org_line = self.original_line[colliding_line.line_nr]
+                colliding_org_line = self.original_lines[colliding_line.line_nr]
                 self.error(f"collision! the {"instruction" if colliding_line.pseudo else "instructions"} '{self.original_line}' and {"the pseudo instruction" if colliding_line.pseudo else ""} '{colliding_org_line}' share the same address of {hex(self.address)}.", colliding_org_line, colliding_org_line)
-
+    
             mnemonic: re.Match = get_mnemonic(self.line.line)                # type: ignore
         
             if mnemonic in self.isa["syntax"] and mnemonic not in self.isa.get("pseudo"):
@@ -528,6 +543,13 @@ class Assembler:
         
             if self.address is not None and self.address >= self.mem_size: # pyright: ignore[reportOperatorIssue]
                 self.error("the program went outside of the addressing space.", self.original_line)
+
+            for address in range(self.address, self.address + self.address_steps): # pyright: ignore[reportOperatorIssue]
+                if address in self.vals:
+                    val = self.vals[address]
+                    origin = self.val_origins[address]
+                    self.error(f"collision! the instruction '{self.original_line.strip()}' and the val '{val}' or in ascii '{chr(val)}' share the same address of {hex(address)}.", line_s=f"value definition:\n{origin}\n\ncolliding instruction:\n{self.line.line}")
+
 
         if self.start is None and self.hardware.get("start pointer addr", "None") != "None":
             self.error("no '.start' directive was found.", non_program_error=True)
@@ -580,14 +602,13 @@ class Assembler:
             self.error("unknown directive.", dir_str)
 
         dir_syntax = directive_syntax[dir_str]
-        ops = self.parse_dir_ops(dir.group(0), dir_syntax, dir_str, (dir_str != ".def"))    
+        ops = self.parse_dir_ops(dir.group(0), dir_syntax, dir_str, (dir_str != ".def")) if dir_str != ".num" else [dir.group(0)[len(dir_str):]]
 
-        if dir_str == ".func":
+        if dir_str == ".block":
             return True
 
         if dir_str == ".org":
             self.address = ops[0]
-            return False
 
         if dir_str == ".start":
             if self.hardware.get("start pointer addr", "None") != "None":
@@ -595,10 +616,9 @@ class Assembler:
             else:
                 self.error("this isa arcitecture does not have a start pointer so .start is ignored", dir_str, warn=True)
             if self.start is not None:
-                self.error("can't define start twice.")
-                
-            self.start = self.address = ops[0]
-            return False
+                self.error("can't define start twice, only ethe first definition will be the start vector", warn=True)
+            else:  
+                self.start = self.address = ops[0]
         
         if dir_str == ".def":             
             if label.fullmatch(ops[0]) is None:
@@ -608,11 +628,9 @@ class Assembler:
                 self.error(f"{dir.group(0)} is redefining {self.isa["syntax"][ops[0]]}", ops[0], warn=True)
         
             self.variables[ops[0]] = ops[1]
-            return False
             
-        if dir_str == ".val":
-            vals = ops
-            vals = digit.findall(str(ops[0]))
+        if dir_str == ".num":
+            vals = digit.findall(ops[0])
             for num in vals:
                 num = int(num, 0)
                 if num >= 2**self.hardware["data width"]: 
@@ -622,10 +640,11 @@ class Assembler:
                 if self.address >= self.mem_size: # pyright: ignore[reportOptionalOperand]
                     self.error(f"directive went out of the addressing space of {hex(self.mem_size)}.", dir_str, warn=True)
                 if self.address in self.vals:
-                    self.error("the directive is overwritting anothers directives vals in mem.", dir_str)
+                    val = self.vals[self.address]
+                    self.error(f"collision! the first directive is overwriting the second", dir_str, f"{self.val_origins[self.address]}\n{self.original_line}")
                 self.vals[self.address] = num
+                self.val_origins[self.address] = self.original_line
                 self.calc_address(step_size=math.ceil(num.bit_length()/self.hardware["data width"])) # pyright: ignore[reportAttributeAccessIssue, reportArgumentType]
-            return False
         
         if dir_str == ".include":
             # Resolve the included file relative to the current program file
@@ -645,10 +664,15 @@ class Assembler:
 
             # Merge labels, instructions, and variables from the included file
             self.labels[self.current_indent_level] |= temp_asm.labels[0]
-            temp_asm.initialize(self.multi_mem, first=False)
-            self.instructions += temp_asm.assemble_program()
+            for var in self.variables:
+                if var in temp_asm.variables:
+                    self.error(f"collision! the var '{var}' from '{self.current_file.name}' and the included var '{temp_asm.variables[var]}' from '{temp_asm.current_file.name}' are named the same so the included one is going to be used.", var,  warn=True)
             self.variables |= temp_asm.variables
-            return False
+            temp_asm.instructions = self.instructions
+            # assemble and add to the instructions
+            temp_asm.initialize(self.multi_mem, first=False)
+            self.instructions = temp_asm.assemble_program()
+            
         return False
     
 
@@ -661,16 +685,38 @@ class Assembler:
             self.error(f"'{dir}' expects {len(syntax)} operand(s), but got {len(ops)}.", )
 
         for i, exp_op_type in enumerate(syntax):
-            ops[i] = self.parse_operand(ops[i], exp_op_type, dir_op_types, dir, change_ops)[0]
+            ops[i] = self.parse_operand(ops[i], exp_op_type, dir_op_types, change_ops)[0]
         
         return ops # pyright: ignore[reportReturnType]
 
 
     def parse_pseudo_inst(self, pseudo_line: str):
         mnemonic = get_mnemonic(pseudo_line) 
+        syntax = self.isa["syntax"][mnemonic]
+
         op_part = pseudo_line[len(mnemonic):] # pyright: ignore[reportArgumentType]
-    
+        if isinstance(syntax, str):
+            syntax = self.isa["syntax temp"][syntax]
+
+        pseudo_syntax = []
+        for part in syntax:
+            var_pad = ["var"]
+            if isinstance(part, list):
+                var_pad += part
+            else:
+                var_pad.append(part)
+            pseudo_syntax.append(var_pad)
+
         ops = smart_split(op_part)
+
+        if len(syntax) != len(ops):
+            self.error(f"'{mnemonic}' expects {len(syntax)} operand(s), but got {len(ops)}.", )
+
+        op_types = []
+        op_type = ""
+        for i, exp_op_types in enumerate(pseudo_syntax):
+            ops[i], op_type = self.parse_operand(ops[i], exp_op_types, self.isa["op types"], False)
+            op_types.append(op_type)
 
         converted_lines: list[str] = self.isa["pseudo"][mnemonic]
 
@@ -684,18 +730,9 @@ class Assembler:
         else:
             self.current_pseudo_lines[0] += len(converted_lines)
 
-        syntax = self.isa["syntax"][get_mnemonic(pseudo_line)]
-        if isinstance(syntax, str):
-            syntax = self.isa["syntax temp"][syntax]
+        
 
-        for i, part in enumerate(syntax):
-            if part in DEFAULT_OP_TYPES["address"]["aliases"]:
-                syntax[i] = [part, DEFAULT_OP_TYPES["variable"]["aliases"][0]]
-
-        self.parse_operands(pseudo_line, syntax, mnemonic, False)  # type: ignore
-
-
-    def parse_operands(self, line:str, syntax, mnemonic, change_ops = True) -> list[list]:
+    def parse_operands(self, line:str, syntax, mnemonic) -> list[list]:
         op_part = line[len(mnemonic):]
         if isinstance(syntax, str):
             syntax = self.isa["syntax temp"][syntax]
@@ -708,42 +745,45 @@ class Assembler:
         op_types = []
         op_type = ""
         for i, exp_op_type in enumerate(syntax):
-            ops[i], op_type = self.parse_operand(ops[i], exp_op_type, self.isa["op types"] | DEFAULT_OP_TYPES, mnemonic, change_ops)
+            ops[i], op_type = self.parse_operand(ops[i], exp_op_type, self.isa["op types"], True)
             op_types.append(op_type)
         bin_ops = []
-        if change_ops:
+
+        if all(isinstance(op, int) for op in ops):
             for i, op in enumerate(ops):
                 bin_ops.append(bin(op)[2:].zfill(op_types[i]["size"])) # pyright: ignore[reportArgumentType]
                 
         return [ops, bin_ops]  # pyright: ignore[reportReturnType]
 
 
-    def parse_operand(self, op, exp_op_types, available_types, mnemonic, change_op):
+    def parse_operand(self, op, exp_op_types, available_types, change_op):
         # looks for variables first then global labels then local label
         org_op = op
-
+        
         if isinstance(exp_op_types, str):
             exp_op_types = [exp_op_types]
-        op = self.get_variable(op)
 
-        scope = get_current_scope(self.labels, self.current_indent_level)
-        if isinstance(self.line, ParsedLine) and self.line.func_name:
-            func = next((func for func in self.funcs if func.scope <= self.current_indent_level and func.name == self.line.func_name))
-            scope = expand_dict(scope, func.local_labels)
+        if change_op:
+            op = self.get_variable(op)
 
-        for exp_op_type in exp_op_types:
-            if exp_op_type in available_types.get("relative address", {}).get("aliases", []):
-                if op in scope:
-                    addr = scope[op]
-                    m = re.match(DEFAULT_OP_TYPES["address"]["re"], addr)
-                    if not m:
-                        self.error(f"Label '{op}' does not contain a valid address.", org_op)
-                    op = "$" + str(int(m.group(1), 0) - self.address) # pyright: ignore[reportOperatorIssue]
+            scope = get_current_scope(self.labels, self.current_indent_level)
+            if isinstance(self.line, ParsedLine) and self.line.in_func: # pyright: ignore[reportAttributeAccessIssue]
+                func = next((func for func in self.funcs if self.address in range(func.start_addr, func.stop_addr+1)))
+                scope = expand_dict(scope, func.local_labels)
+
+            for exp_op_type in exp_op_types:
+                if exp_op_type in available_types.get("relative address", {}).get("aliases", []):
+                    if op in scope:
+                        addr = scope[op]
+                        m = re.match(DEFAULT_OP_TYPES["address"]["re"], addr)
+                        if not m:
+                            self.error(f"Label '{op}' does not contain a valid address.", org_op)
+                        op = "$" + str(int(m.group(1), 0) - self.address) # pyright: ignore[reportOperatorIssue]
                 
-        op = scope.get(op, op)
+            op = scope.get(op, op)
 
-        if isinstance(op, str):
-            op = op.lower()
+            if isinstance(op, str):
+                op = op.lower()
         try:             
             op_type, op_match = self.get_op_type((op), available_types)
             op_type_aliases: list = op_type["aliases"] # pyright: ignore[reportArgumentType, reportCallIssue]
@@ -754,7 +794,7 @@ class Assembler:
                     expected = True
             
             if not expected:
-                self.error(f"Expected operand type '{exp_op_type}', but got '{op_type_aliases}' for operand '{org_op}'", org_op)
+                self.error(f"Expected operand type '{exp_op_type}', but got '{op_type_aliases}' for operand '{org_op}'. possibly an undefined var.", org_op)
             if change_op and op_type["convertable"]: # type: ignore
                 op = int(op_match.group(1), 0)
 
@@ -764,6 +804,7 @@ class Assembler:
             self.error(f"couldn't convert the operand '{op}' to int, are you sure it's convertable?", op)
         
         return op, op_type # pyright: ignore[reportPossiblyUnboundVariable]
+
 
     def get_op_type(self, op: str, types: dict) -> tuple[list, re.Match] | NoReturn: # type: ignore
         for name, Type in types.items():
@@ -1018,7 +1059,7 @@ def dict_value_into_bytes(data: dict[int, int], data_byte_size: int = 0, endian:
 
 def make_file(filename: Path, mem_map: dict[int, int], size: int, endian, pad_num = 0, data_size = 1):
     if filename.suffix == ".bin":
-        make_bin_file(filename, mem_map, size, endian, pad_num, data_size)
+        make_bin_file(filename, mem_map, size, pad_num)
     elif filename.suffix == ".hex":
         make_hex_file(filename, mem_map)
     elif filename.suffix == ".lgsm":
@@ -1057,27 +1098,27 @@ def make_hex_file(filename: Path, memory_map):  # pad_value unused here but kept
         hex_file.write(":00000001FF\n")
 
     
-def make_bin_file(filename: Path, memory_map, size: int, endian, pad_num: int = 0, data_size = 0): # type: ignore
+def make_bin_file(filename: Path, memory_map: dict, size: int, pad_num: int = 0):
     prev_addr = -1  
     bytes_out = []
-    filename: Path = Path(filename)
-    memory_map = dict_value_into_bytes(memory_map, data_size, endian)
+    filename = Path(filename)
+    
     for addr in sorted(memory_map):
         # Fill all addresses up to current one
-        for _ in range((addr - prev_addr - 1)*max(1, data_size)):
-            bytes_out.append(pad_num)
+        gap = addr - prev_addr - 1
+        if gap > 0:
+            bytes_out.extend([pad_num] * gap)
 
         bytes_out.append(memory_map[addr])
         prev_addr = addr
 
     # Pad to full memory size
-    while len(bytes_out) < size:
-        bytes_out.append(0)
+    if len(bytes_out) < size:
+        bytes_out.extend([0] * (size - len(bytes_out)))
 
     filename = filename.with_suffix(".bin")
     with open(filename, "wb") as bin_file:
         bin_file.write(bytearray(bytes_out))
-
 
 def make_logisim_file(filename: Path, mem_map: dict[int, int], size: int, pad_num: int = 0): # type: ignore
     output_bytes = []

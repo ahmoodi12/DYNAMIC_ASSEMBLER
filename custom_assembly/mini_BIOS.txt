@@ -1,41 +1,33 @@
 # custom_assembly\mini_BIOS.txt isa_files\minimal_cpu.json -f lgsm -e big -d -s 63488
 
-.def boot_str, $0xf7b0
-.def command_str, $0xf7da
-.def command_draw, $0xf7eb
-.def command_exit, $0xf7f0
+.def boot_str, $0xf7bd
+.def command_str, $0xf7e8
+.def command_exit, $0xf7f9
 
 .org boot_str
-.val "Booting...\npress del to enter cmd prompt"
-.val 0
+.num "Booting...\npress del to enter cmd prompt", 0
 
 .org command_str
-.val "command prompt:\n"
-.val 0
-
-.org command_draw
-.val "draw"
-.val 0
+.num "command prompt:\n", 0
 
 .org command_exit
-.val "exit"
-.val 0
+.num "exit", 0
 
 // interrupt vector
 .org $0xf7ff
-.val 0x1000
+.num 0x1000
 
 .include "mini_definitions.txt"
 
 
 .org $0xf700
+.block
 init:
     clr true, sp
     ldi true, r1, boot_str
     call print_str
-    
+    ldi true, r0, 0xff
     wait:
-        ldi true, r0, 0xff
         lodi true, buttons, r1
         testi r1, 0x20            # check if the esc button was pressed
         jmpi nz, print_prompt     # if z = 0
@@ -46,8 +38,10 @@ init:
     jmpi true, skip_terminal
 
     print_prompt:
-        ldi true, r0, 0x80
+        # reseting the text disp
+        ldi true, r0, 0x80          
         stoi true, text_disp, r0
+
         ldi true, r1, command_str
         call print_str
         jmpi, true command_prompt
@@ -72,24 +66,81 @@ init:
     clr true, r10
     clr true, r11
     clr true, r12
-    clr true, flags
+    ldi true, flags int_enable
     clr true, sp
     hlt
 
 
-// infinite loop unless broken
-command_prompt:
-    ldi true, r1, command_exit
-    call check_for_str_in_keyboard
-    jmpi ca, halt
+    // infinite loop unless broken
+    command_prompt:
+        ldi true, r1, command_exit
+        call check_for_str_in_keyboard
+        testi flags, flag_A
+        jmpi nz, halt
 
-    jmpi true, command_prompt
-    
+        jmpi true, command_prompt
+
 halt:
     hlt
     
     
+
+.org $0xf770
+
+.block
+print_str:      // prints from pointer in r1
+    push r2
+    jmpi true, start
+    loop:
+        stoi true, text_disp, r2
+    start:
+        lod true, r1, r2
+        inc r1
+        cmpi r2, 0  
+        jmpi nz, loop
+    pop r2
+    ret
+
+.block
+// pointer in r1, returns the result in the the 6th flag, other flags unchanged
+check_for_str_in_keyboard:   
+    wait:
+        lodi true, buttons, r4
+        testi r4, 0b10000
+        jmpi z, wait
+    loop:
+        # get char from keyboard
+        lodi true, keyboard, r2
+        testi r2, 0x80                  # check if keyboard is empty
+        jmpi z, keyboard_empty
+        andi r2, 0x7f, r2               # get the ascii 7 bits 
+        stoi true, text_disp, r2
+        
+        # get expected char
+        lod true, r1, r3
+        inc r1               
+
+        # check if end of exp str
+        cmpi r3, 0
+        jmpi eq, same
+
+        # compare the chars
+        cmp r3, r2
+        jmpi nz, not_same
+
+        jmpi true, loop
+        
+    same:
+        ori flags, flag_A, flags     // set carry
+        jmpi true, end
+
+    keyboard_empty:
+    not_same:
+        andi flags, not_flag_A, flags     // clears carry
     
+    end:
+        ret
+        
     
     
     

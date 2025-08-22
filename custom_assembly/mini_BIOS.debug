@@ -1,106 +1,172 @@
 0F700: ldi true, sp, 0                            // machine code: 0xd003, org line: clr true, sp
 
-0F702: ldi true, r1, boot_str                     // machine code: 0xf7c21003, org line: ldi true, r1, boot_str
+0F702: ldi true, r1, boot_str                     // machine code: 0xf7bd1003, org line: ldi true, r1, boot_str
 
 0F704: mov @0, r15, r12                           // machine code: 0xcf0030, org line: call print_str
 
 0F706: addi r12, 8, r12                           // machine code: 0x8cc01, org line: call print_str
 
-0F708: sto @0, r13, r12, 0                        // machine code: 0xcd054, org line: call print_str
+0F708: sto @0, r13, r12                           // machine code: 0xcd054, org line: call print_str
 
 0F70A: addi r13, 1, r13                           // machine code: 0x1dd01, org line: call print_str
 
-0F70C: ldi @0, r15, print_str                     // machine code: 0xf780f003, org line: call print_str
+0F70C: ldi @0, r15, print_str                     // machine code: 0xf770f003, org line: call print_str
 
-0F70E: ldi true, r0, 0x1f                         // machine code: 0x1f0003, org line: ldi true, r0, 0x1f
+0F70E: ldi true, r0, 0xff                         // machine code: 0xff0003, org line: ldi true, r0, 0xff
 
-0F710: lodi true, buttons, r1                     // machine code: 0xf6f41007, org line: lodi true, buttons, r1
+0F710: lodi true, buttons, r1                     // machine code: 0xf6f31007, org line: lodi true, buttons, r1
 
-0F712: testi r1, 0x20                             // machine code: 0x201006, org line: testi r1, 0x20
+0F712: testi r1, 0x20                             // machine code: 0x201006, org line: testi r1, 0x20            # check if the esc button was pressed
 
-0F714: ldi neq, r15, skip_wait                    // machine code: 0xf71af603, org line: jmpi neq, skip_wait     # if z = 0
+0F714: ldi nz, r15, print_prompt                  // machine code: 0xf720f603, org line: jmpi nz, print_prompt     # if z = 0
 
 0F716: subi r0, 1, r0                             // machine code: 0x10009, org line: for r0, wait
 
-0F718: ldi @3, r15, wait                          // machine code: 0xf70ef303, org line: for r0, wait
+0F718: ldi @6, r15, wait                          // machine code: 0xf710f603, org line: for r0, wait
 
 0F71A: ldi true, r0, 0x80                         // machine code: 0x800003, org line: ldi true, r0, 0x80
 
 0F71C: stoi true, text_disp, r0                   // machine code: 0xf6f0000b, org line: stoi true, text_disp, r0
 
-0F71E: ldi eq, r15, skip_prompt                   // machine code: 0xf72cf103, org line: jmpi eq, skip_prompt    # if z = 1 we skip
+0F71E: ldi true, r15, skip_terminal               // machine code: 0xf732f003, org line: jmpi true, skip_terminal
 
-0F720: ldi true, r1, command_str                  // machine code: 0xf7ec1003, org line: ldi true, r1, command_str
+0F720: ldi true, r0, 0x80                         // machine code: 0x800003, org line: ldi true, r0, 0x80
 
-0F722: mov @0, r15, r12                           // machine code: 0xcf0030, org line: call print_str
+0F722: stoi true, text_disp, r0                   // machine code: 0xf6f0000b, org line: stoi true, text_disp, r0
 
-0F724: addi r12, 8, r12                           // machine code: 0x8cc01, org line: call print_str
+0F724: ldi true, r1, command_str                  // machine code: 0xf7e81003, org line: ldi true, r1, command_str
 
-0F726: sto @0, r13, r12, 0                        // machine code: 0xcd054, org line: call print_str
+0F726: mov @0, r15, r12                           // machine code: 0xcf0030, org line: call print_str
 
-0F728: addi r13, 1, r13                           // machine code: 0x1dd01, org line: call print_str
+0F728: addi r12, 8, r12                           // machine code: 0x8cc01, org line: call print_str
 
-0F72A: ldi @0, r15, print_str                     // machine code: 0xf780f003, org line: call print_str
+0F72A: sto @0, r13, r12                           // machine code: 0xcd054, org line: call print_str
 
-0F72C: ldi true, r0, 0xf5ff                       // machine code: 0xf5ff0003, org line: ldi true, r0, 0xf5ff
+0F72C: addi r13, 1, r13                           // machine code: 0x1dd01, org line: call print_str
 
-0F72E: stoi true, rom_end, r0                     // machine code: 0xf6f2000b, org line: stoi true, rom_end, r0
+0F72E: ldi @0, r15, print_str                     // machine code: 0xf770f003, org line: call print_str
 
-0F730: ldi true, r0, 0                            // machine code: 0x3, org line: clr true, r0
+0F730: ldi true, r15, command_prompt              // machine code: 0xf758f003, org line: jmpi, true command_prompt
 
-0F732: stoi true, rom_start, r0                   // machine code: 0xf6f1000b, org line: stoi true, rom_start, r0
+0F732: ldi true, r0, 0xf5ff                       // machine code: 0xf5ff0003, org line: ldi true, r0, 0xf5ff
 
-0F734: ldi true, r1, 0                            // machine code: 0x1003, org line: clr true, r1
+0F734: stoi true, rom_end, r0                     // machine code: 0xf6f2000b, org line: stoi true, rom_end, r0
 
-0F736: ldi true, r2, 0                            // machine code: 0x2003, org line: clr true, r2
+0F736: ldi true, r0, 0                            // machine code: 0x3, org line: clr true, r0
 
-0F738: ldi true, r3, 0                            // machine code: 0x3003, org line: clr true, r3
+0F738: stoi true, rom_start, r0                   // machine code: 0xf6f1000b, org line: stoi true, rom_start, r0
 
-0F73A: ldi true, r4, 0                            // machine code: 0x4003, org line: clr true, r4
+0F73A: ldi true, r1, 0                            // machine code: 0x1003, org line: clr true, r1
 
-0F73C: ldi true, r5, 0                            // machine code: 0x5003, org line: clr true, r5
+0F73C: ldi true, r2, 0                            // machine code: 0x2003, org line: clr true, r2
 
-0F73E: ldi true, r6, 0                            // machine code: 0x6003, org line: clr true, r6
+0F73E: ldi true, r3, 0                            // machine code: 0x3003, org line: clr true, r3
 
-0F740: ldi true, r7, 0                            // machine code: 0x7003, org line: clr true, r7
+0F740: ldi true, r4, 0                            // machine code: 0x4003, org line: clr true, r4
 
-0F742: ldi true, r8, 0                            // machine code: 0x8003, org line: clr true, r8
+0F742: ldi true, r5, 0                            // machine code: 0x5003, org line: clr true, r5
 
-0F744: ldi true, r9, 0                            // machine code: 0x9003, org line: clr true, r9
+0F744: ldi true, r6, 0                            // machine code: 0x6003, org line: clr true, r6
 
-0F746: ldi true, r10, 0                           // machine code: 0xa003, org line: clr true, r10
+0F746: ldi true, r7, 0                            // machine code: 0x7003, org line: clr true, r7
 
-0F748: ldi true, r11, 0                           // machine code: 0xb003, org line: clr true, r11
+0F748: ldi true, r8, 0                            // machine code: 0x8003, org line: clr true, r8
 
-0F74A: ldi true, r12, 0                           // machine code: 0xc003, org line: clr true, r12
+0F74A: ldi true, r9, 0                            // machine code: 0x9003, org line: clr true, r9
 
-0F74C: ldi true, flags, 0                         // machine code: 0xe003, org line: clr true, flags
+0F74C: ldi true, r10, 0                           // machine code: 0xa003, org line: clr true, r10
 
-0F74E: ldi true, sp, 0                            // machine code: 0xd003, org line: clr true, sp
+0F74E: ldi true, r11, 0                           // machine code: 0xb003, org line: clr true, r11
 
-0F750: hlt                                        // machine code: 0x13, org line: hlt
+0F750: ldi true, r12, 0                           // machine code: 0xc003, org line: clr true, r12
 
-0F780: sto @0, r13, r2, 0                         // machine code: 0x2d054, org line: push r2
+0F752: ldi true, flags int_enable                 // machine code: 0x10e003, org line: ldi true, flags int_enable
 
-0F782: addi r13, 1, r13                           // machine code: 0x1dd01, org line: push r2
+0F754: ldi true, sp, 0                            // machine code: 0xd003, org line: clr true, sp
 
-0F784: ldi true, r15, start                       // machine code: 0xf788f003, org line: jmpi true, start
+0F756: hlt                                        // machine code: 0x13, org line: hlt
 
-0F786: stoi true, text_disp, r2                   // machine code: 0xf6f0200b, org line: stoi true, text_disp, r2
+0F758: ldi true, r1, command_exit                 // machine code: 0xf7f91003, org line: ldi true, r1, command_exit
 
-0F788: lod true, r1, r2, 0                        // machine code: 0x201050, org line: lod true, r1, r2, 0
+0F75A: mov @0, r15, r12                           // machine code: 0xcf0030, org line: call check_for_str_in_keyboard
 
-0F78A: addi r1, 1, r1                             // machine code: 0x11101, org line: inc r1
+0F75C: addi r12, 8, r12                           // machine code: 0x8cc01, org line: call check_for_str_in_keyboard
 
-0F78C: cmpi r2, 0                                 // machine code: 0x2002, org line: cmpi r2, 0
+0F75E: sto @0, r13, r12                           // machine code: 0xcd054, org line: call check_for_str_in_keyboard
 
-0F78E: ldi neq, r15, loop                         // machine code: 0xf786f603, org line: jmpi neq, loop
+0F760: addi r13, 1, r13                           // machine code: 0x1dd01, org line: call check_for_str_in_keyboard
 
-0F790: subi r13, 1, r13                           // machine code: 0x1dd09, org line: pop r2
+0F762: ldi @0, r15, check_for_str_in_keyboard     // machine code: 0xf788f003, org line: call check_for_str_in_keyboard
 
-0F792: lod @0, r13, r2, 0                         // machine code: 0x20d050, org line: pop r2
+0F764: testi flags, flag_A                        // machine code: 0x20e006, org line: testi flags, flag_A
 
-0F794: subi r13, 1, r13                           // machine code: 0x1dd09, org line: ret
+0F766: ldi nz, r15, halt                          // machine code: 0xf76af603, org line: jmpi nz, halt
 
-0F796: lod @0, r13, r15, 0                        // machine code: 0xf0d050, org line: ret
+0F768: ldi true, r15, command_prompt              // machine code: 0xf758f003, org line: jmpi true, command_prompt
+
+0F76A: hlt                                        // machine code: 0x13, org line: hlt
+
+0F770: sto @0, r13, r2                            // machine code: 0x2d054, org line: push r2
+
+0F772: addi r13, 1, r13                           // machine code: 0x1dd01, org line: push r2
+
+0F774: ldi true, r15, start                       // machine code: 0xf778f003, org line: jmpi true, start
+
+0F776: stoi true, text_disp, r2                   // machine code: 0xf6f0200b, org line: stoi true, text_disp, r2
+
+0F778: lod true, r1, r2                           // machine code: 0x201050, org line: lod true, r1, r2
+
+0F77A: addi r1, 1, r1                             // machine code: 0x11101, org line: inc r1
+
+0F77C: cmpi r2, 0                                 // machine code: 0x2002, org line: cmpi r2, 0
+
+0F77E: ldi nz, r15, loop                          // machine code: 0xf776f603, org line: jmpi nz, loop
+
+0F780: subi r13, 1, r13                           // machine code: 0x1dd09, org line: pop r2
+
+0F782: lod @0, r13, r2                            // machine code: 0x20d050, org line: pop r2
+
+0F784: subi r13, 1, r13                           // machine code: 0x1dd09, org line: ret
+
+0F786: lod @0, r13, r15                           // machine code: 0xf0d050, org line: ret
+
+0F788: lodi true, buttons, r4                     // machine code: 0xf6f34007, org line: lodi true, buttons, r4
+
+0F78A: testi r4, 0b10000                          // machine code: 0x104006, org line: testi r4, 0b10000
+
+0F78C: ldi z, r15, wait                           // machine code: 0xf788f103, org line: jmpi z, wait
+
+0F78E: lodi true, keyboard, r2                    // machine code: 0xf6f42007, org line: lodi true, keyboard, r2
+
+0F790: testi r2, 0x80                             // machine code: 0x802006, org line: testi r2, 0x80                  # check if keyboard is empty
+
+0F792: ldi z, r15, keyboard_empty                 // machine code: 0xf7aaf103, org line: jmpi z, keyboard_empty
+
+0F794: andi r2, 0x7f, r2                          // machine code: 0x7f2215, org line: andi r2, 0x7f, r2               # get the ascii 7 bits
+
+0F796: stoi true, text_disp, r2                   // machine code: 0xf6f0200b, org line: stoi true, text_disp, r2
+
+0F798: lod true, r1, r3                           // machine code: 0x301050, org line: lod true, r1, r3
+
+0F79A: addi r1, 1, r1                             // machine code: 0x11101, org line: inc r1
+
+0F79C: cmpi r3, 0                                 // machine code: 0x3002, org line: cmpi r3, 0
+
+0F79E: ldi eq, r15, same                          // machine code: 0xf7a6f103, org line: jmpi eq, same
+
+0F7A0: cmp r3, r2                                 // machine code: 0x23028, org line: cmp r3, r2
+
+0F7A2: ldi nz, r15, not_same                      // machine code: 0xf7aaf603, org line: jmpi nz, not_same
+
+0F7A4: ldi true, r15, loop                        // machine code: 0xf78ef003, org line: jmpi true, loop
+
+0F7A6: ori flags, flag_A, flags                   // machine code: 0x20ee11, org line: ori flags, flag_A, flags     // set carry
+
+0F7A8: ldi true, r15, end                         // machine code: 0xf7acf003, org line: jmpi true, end
+
+0F7AA: andi flags, not_flag_A, flags              // machine code: 0xffdfee15, org line: andi flags, not_flag_A, flags     // clears carry
+
+0F7AC: subi r13, 1, r13                           // machine code: 0x1dd09, org line: ret
+
+0F7AE: lod @0, r13, r15                           // machine code: 0xf0d050, org line: ret
 

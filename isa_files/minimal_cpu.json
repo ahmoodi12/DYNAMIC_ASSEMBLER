@@ -11,19 +11,7 @@
         "data width": 16
     },
     "operand types": {
-        "reg": {"aliases": ["register", "reg"], "re": "r(\\d+)", "size": 4, "convertable": true},
-        "address": {
-            "aliases": ["addr", "address"],
-            "re": "\\$([+-]?(?:0x[0-9a-fA-F]+|0b[01]+|0o[0-7]+|\\d+))",
-            "size": 16,
-            "convertable": true
-        },
-        "relative address": {
-            "aliases": ["rel_addr", "relative_address", "rel addr", "relative address"],
-            "re": "\\$([+-]?(?:0x[0-9a-fA-F]+|0b[01]+|0o[0-7]+|\\d+))",
-            "size": 16,
-            "convertable": true
-        },        
+        "reg": {"aliases": ["register", "reg"], "re": "r(\\d+)", "size": 4, "convertable": true},       
         "immediate": {
             "aliases": ["imm", "immediate"],
             "re": "([+-]?(?:0x[0-9a-fA-F]+|0b[01]+|0o[0-7]+|\\d+))",
@@ -60,7 +48,7 @@
 
         "swap":     ["xor {op1}, {op2}, {op3}, {op2}", "xor {op1}, {op3}, {op2}, {op3}", "xor {op1}, {op2}, {op3}, {op2}"],
 
-        "for":      ["dec {op1}", "jmpi @3, {op2}"]
+        "for":      ["dec {op1}", "jmpi @6, {op2}"]
             },
     "opcodes": {
         "nop": "00000000",
