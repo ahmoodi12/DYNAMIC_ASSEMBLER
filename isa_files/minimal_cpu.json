@@ -35,13 +35,13 @@
         "jmpi":     ["ldi {op1}, r15, {op2}"],
         "jmpr":     ["mov {op1}, {op2}, r15"],  
 
-        "push":     ["sto @0, r13, {op1}", "inc r13"],
-        "pop":      ["dec r13", "lod @0, r13, {op1}"], 
+        "push":     ["inc r13", "sto @0, r13, {op1}"],
+        "pop":      ["lod @0, r13, {op1}", "dec r13"], 
 
         "ccall":    ["jmpi {op1}, CALSRT", "jmpi @0, SKIPCAL", "CALSRT:", "   call {op2}", "SKIPCAL:"], 
         "ccallr":   ["jmpi {op1}, CALSRT", "jmpi @0, SKIPCAL", "CALSRT:", "   callr {op2}", "SKIPCAL:"], 
-        "call":     ["mov @0, r15, r12", "addi r12, 8, r12", "push r12", "jmpi @0, {op1}"], 
-        "callr":    ["mov @0, r15, r12", "addi r12, 8, r12", "push r12", "jmpr @0, {op1}"], 
+        "call":     ["push r15", "jmpi @0, {op1}"], 
+        "callr":    ["push r15", "jmpr @0, {op1}"], 
 
         "cret":     ["jmpi {op1}, RETSRT", "jmpi @0, SKIPRET", "RETSRT:", "   ret", "SKIPRET:"],
         "ret":      ["pop r15"],

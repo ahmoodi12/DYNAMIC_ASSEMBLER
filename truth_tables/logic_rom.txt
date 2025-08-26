@@ -9,6 +9,7 @@ OUTPUT = BIN
 | 010 | XXXX_XXXX  |  XXXX_XXXX  -> in_a + in_b  |
 | 011 | XXXX_XXXX  |  XXXX_XXXX  -> in_a & in_b  |
 | 100 | XXXX_XXXX  |  XXXX_XXXX  -> in_a ^ in_b  |
+| 101 | XXXX_XXXX  |  XXXX_XXXX  -> 0000_0000    |
 
 # L_OP
 # 000 = in_b
@@ -16,6 +17,7 @@ OUTPUT = BIN
 # 010 = in_a + in_b
 # 011 = in_a * in_b
 # 100 = in_a ^ in_b
+# 101 = zero
 
 
 

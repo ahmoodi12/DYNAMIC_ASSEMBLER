@@ -1,3 +1,4 @@
+import itertools
 import json
 import math
 from pathlib import Path
@@ -158,9 +159,9 @@ def find_largest(lst):
             biggest = item
     return [i, item] # type: ignore
 
-def get_current_scope(all_labels: list[dict], indent_levl):
+def get_current_scope(all_labels: list[dict], indent_level):
     scope_labels = {}
-    for labels in all_labels[:min(len(all_labels), max(0, indent_levl) + 1)]:
+    for labels in all_labels[:min(len(all_labels), max(0, indent_level) + 1)]:
         scope_labels |= labels
     return scope_labels
 
@@ -266,6 +267,7 @@ class Function:
     name: str
     scope: int
     start_addr: int
+    parent_func: "Function | None"
     stop_addr: int = 0
     local_labels:  list[dict] = field(default_factory=list)
     global_labels:  list[dict] = field(default_factory=list)
@@ -374,7 +376,8 @@ class Assembler:
 
         # indent_levels: indents
         self.indents = [0]  
-
+        self.current_indents = self.indents
+        self.current_labels = self.labels
         for self.line_i, self.line in enumerate(self.lines):  
             if self.current_pseudo_lines[0] == 0:
                 self.current_line_nr = len(self.overlooked_part)
@@ -402,32 +405,33 @@ class Assembler:
             # indents and labels
             current_indent = get_indent_count(self.line)
             
-            if next_higher_indent and prev_indent >= current_indent:
-                self.error("there should to be an indentation after a label.", self.line.strip(), f"{prev_label}\n{self.original_line}", warn = not next_is_func) # type: ignore
+            if next_higher_indent:
+                if next_higher_indent and prev_indent >= current_indent:
+                    self.error("there should to be an indentation after a label.", self.line.strip(), f"{prev_label}\n{self.original_line}", warn = not next_is_func) # type: ignore
             
-            if not next_higher_indent and current_indent > prev_indent: 
-                self.error("indent increased unexpectedly.",  self.line.strip()[0], f"{self.overlooked_part[-1]}\n{self.original_line}", warn = True) # type: ignore
-            
+            else:
+                if current_indent > prev_indent: 
+                    self.error("indent increased unexpectedly.",  self.line.strip()[0], f"{self.overlooked_part[-1]}\n{self.original_line}") # type: ignore
+                
+                if current_indent not in self.current_indents:
+                    self.error("indent amount does not match any other indent amount.", self.line.strip()[0]) # type: ignore
+
             next_higher_indent = False
-            
-            if all(current_indent > indent for indent in self.indents):
-                if current_func is not None:
-                    current_func.indents.append(current_indent)
-                    current_func.local_labels.append({})
-                else:
-                    self.indents.append(current_indent)
-                    self.labels.append({})
 
-            if current_indent not in self.indents:
-                self.error("indent amount does not match any other indent amount.", self.line.strip()[0]) # type: ignore
-
-            self.current_indent_level = self.indents.index(current_indent)
-            prev_indent = current_indent
+            if all(current_indent > indent for indent in self.current_indents):
+                self.current_indents.append(current_indent)
+                self.current_labels.append({})
+            self.current_indent_level = self.current_indents.index(current_indent)
 
             if current_func is not None and self.current_indent_level < current_func.scope: # pyright: ignore[reportOptionalMemberAccess]
                 current_func.stop_addr = self.address # pyright: ignore[reportAttributeAccessIssue]
-                current_func = None
-                
+                current_func = current_func.parent_func
+                self.current_indents = current_func.indents if current_func else self.indents
+                self.current_labels = current_func.local_labels if current_func else self.labels
+
+            prev_indent = current_indent
+
+
             mnemonic = 0
             # groups: 1 = dir, 2 = sep, 3 = params
             directive:re.Match = re.match(r"\s*(\.\w+)(,|\s+)?(.+)?", self.line) # type: ignore
@@ -471,9 +475,18 @@ class Assembler:
                         self.labels[self.current_indent_level][label.group(1)] = f"${self.address}"
                 
                 if next_is_func:
+                    global_labels = self.labels[:self.current_indent_level + 1]
+                    if current_func is not None:
+                        global_labels = [global_scope | local_scope for global_scope, local_scope in itertools.zip_longest(current_func.global_labels, current_func.local_labels, fillvalue={})]   # pyright: ignore[reportOptionalMemberAccess]
+                    
                     current_func = Function(label.group(1), self.current_indent_level + 1,
-                                            self.address, global_labels=self.labels, # pyright: ignore[reportArgumentType]
-                                            local_labels=[{} for _ in range(len(self.indents))], indents=self.indents) # pyright: ignore[reportArgumentType]
+                                            self.address, parent_func=current_func, # pyright: ignore[reportArgumentType]
+                                            global_labels=global_labels, indents=self.current_indents[:self.current_indent_level + 1]) # pyright: ignore[reportArgumentType]
+                    
+                    current_func.local_labels = [{} for _ in range(len(current_func.indents))]
+                    self.current_indents = current_func.indents
+                    self.current_labels = current_func.local_labels
+
                     self.funcs.append(current_func)
                     next_is_func = False
                 
@@ -514,7 +527,9 @@ class Assembler:
                 self.overlooked_part.append(self.original_line)
 
         if current_func is not None:
-            current_func.stop_addr = self.address # pyright: ignore[reportAttributeAccessIssue]
+            while current_func.parent_func is not None:
+                current_func.stop_addr = self.address # pyright: ignore[reportAttributeAccessIssue]
+                current_func = current_func.parent_func
             
         if multi_line_comment:
             self.error("unclosed multiline comment. anything after it will be ignored", "/*", multi_line_comment, warn=True)
@@ -677,7 +692,7 @@ class Assembler:
     
 
     def parse_dir_ops(self, line:str, syntax, dir, change_ops):
-        op_part = line[len(dir):]
+        op_part = line.strip()[len(dir):]
 
         ops = smart_split(op_part)
 
@@ -724,7 +739,7 @@ class Assembler:
             for i, op in enumerate(ops):
                 line = line.replace("{" + f"op{i+1}" + "}", op) # type: ignore
 
-            self.lines.insert(line_i + self.line_i + 1, (" " * self.indents[self.current_indent_level] + line))
+            self.lines.insert(line_i + self.line_i + 1, (" " * self.current_indents[self.current_indent_level] + line))
         if self.current_pseudo_lines[0] == 0:
             self.current_pseudo_lines = [len(converted_lines), self.line]
         else:
