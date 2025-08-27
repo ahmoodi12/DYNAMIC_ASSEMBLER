@@ -1,4 +1,3 @@
-import os
 import time
 import utils as ut
 from pathlib import Path
@@ -35,3 +34,4 @@ if __name__ == "__main__":
     ut.Assembler().run(program_path, isa_path, output_path, binary_size, args.multi, args.debug, args.endian)
     print(f"completed in {(time.time() - start):.4f}s")
     pass
+

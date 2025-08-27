@@ -61,6 +61,10 @@ DEFAULT_OP_TYPES = {
             "convertable": True
         },
     "variable": {"aliases": ["var", "variable"], "re": "([a-zA-Z_]+)", "convertable": False}, 
+    "label_pointer": {"aliases": ["label pointer", "lp", "label"], 
+                      "re": "\\*([+-]?(?:0x[0-9a-fA-F]+|0b[01]+|0o[0-7]+|\\d+))",
+                      "size": 16,
+                      "convertable": True}
 }
 ISA_KEYS = {
     "opcodes": ["opcodes", "instructions", "insts"],
@@ -257,9 +261,10 @@ class ParsedLine:
     line: str
     address: int
     indent_level: int
-    line_nr: int
+    org_line: str
     pseudo: bool
     in_func: bool
+    line_nr: int
     
 
 @dataclass
@@ -304,7 +309,7 @@ class Assembler:
                 mem_map[addr] = num
 
         mem_map |= self.vals
-        #print_addr_data_table(mem_map)
+        print(f"the total program is 0x{len(mem_map):X} addresses big")
 
         if multi_mem:
             for i, Bytearray in enumerate(spread_dict_values(mem_map)):
@@ -358,8 +363,9 @@ class Assembler:
             self.current_pseudo_lines = [0, None]
             self.start = None
             self.instructions:list[Instruction] = []
+            self.overlooked_part = []
+        
         self.address = None
-        self.overlooked_part = []
         self.current_indent_level = 0  
         
 
@@ -380,25 +386,21 @@ class Assembler:
         self.current_labels = self.labels
         for self.line_i, self.line in enumerate(self.lines):  
             if self.current_pseudo_lines[0] == 0:
-                self.current_line_nr = len(self.overlooked_part)
-                self.original_line = self.original_lines[self.current_line_nr]  
+                self.original_line = self.line 
+                self.overlooked_part.append(self.original_line)
 
             # comment removing
             if multi_line_comment is not None:
                 if not (m := re.search(r"\*/", self.line)):
-                    if self.current_pseudo_lines[0] == 0:
-                        self.overlooked_part.append(self.original_line) 
                     continue
                 self.line = self.line[m.end():]
 
             multi_line_comment, self = remove_comment(self)
 
             if not self.line.strip(): # type: ignore
-                if self.current_pseudo_lines[0] == 0:
-                    self.overlooked_part.append(self.original_line)
                 continue 
             
-            # string conversion
+            # convert all strs expect filenames
             if not self.line.strip().startswith(".include"): # pyright: ignore[reportAttributeAccessIssue]
                 self.line = string_to_ord_list(self.line) # pyright: ignore[reportArgumentType]
 
@@ -411,7 +413,7 @@ class Assembler:
             
             else:
                 if current_indent > prev_indent: 
-                    self.error("indent increased unexpectedly.",  self.line.strip()[0], f"{self.overlooked_part[-1]}\n{self.original_line}") # type: ignore
+                    self.error("indent increased unexpectedly.",  self.line.strip()[0], f"{self.original_lines[self.current_line_nr-1]}\n{self.original_line}") # type: ignore
                 
                 if current_indent not in self.current_indents:
                     self.error("indent amount does not match any other indent amount.", self.line.strip()[0]) # type: ignore
@@ -453,9 +455,9 @@ class Assembler:
                     self.error(f"the label {label.group(1)} is outside of the addressing space.", label.group(1))
 
                 if label.group(1) in self.variables:
-                        self.error(f"the label at line {len(self.overlooked_part)} is overwritting a variable name.", label.group(1), warn=True)
+                        self.error(f"the label is overwritting a variable name.", label.group(1), warn=True)
                 if label.group(1) in self.isa["syntax"]:
-                    self.error(f"the label at line {len(self.overlooked_part)} is overwritting a instruction name.", label.group(1), warn=True)
+                    self.error(f"the label is overwritting a instruction name.", label.group(1), warn=True)
 
                 if self.address is None:
                         self.error("address hasn't been specified", self.line) # type: ignore
@@ -464,15 +466,15 @@ class Assembler:
                     if label.group(1) in self.labels[0]:
                         self.error(f"the global labels '{label.group(1)}' match eachother.", label.group(1), warn=True)
                     
-                    self.labels[0][label.group(1)] = f"${self.address}"
+                    self.labels[0][label.group(1)] = f"*{self.address}"
 
                 else:
                     if label.group(1) in get_current_scope(self.labels, self.current_indent_level):
                         self.error(f"the local labels '{label.group(1)}' match eachother.", label.group(1), warn=True)
                     if current_func is not None:
-                        current_func.local_labels[self.current_indent_level][label.group(1)] = f"${self.address}"
+                        current_func.local_labels[self.current_indent_level][label.group(1)] = f"*{self.address}"
                     else:
-                        self.labels[self.current_indent_level][label.group(1)] = f"${self.address}"
+                        self.labels[self.current_indent_level][label.group(1)] = f"*{self.address}"
                 
                 if next_is_func:
                     global_labels = self.labels[:self.current_indent_level + 1]
@@ -502,14 +504,12 @@ class Assembler:
                 if self.address is None:
                     self.error("address hasn't been specified", self.line) # type: ignore
                 
-                if self.current_pseudo_lines[0] == 0:
-                    self.overlooked_part.append(self.original_line)
-                else:
+                if self.current_pseudo_lines[0] != 0:
                     self.current_pseudo_lines[0] -= 1 
-                
-                if mnemonic in self.isa.get("pseudo", []):
-                    self.parse_pseudo_inst(self.line.strip()) # type: ignore
 
+                if mnemonic in self.isa.get("pseudo", []):
+                    self.parse_pseudo_inst(self.line.strip(), mnemonic) # type: ignore
+                
                 else:
                     if self.address is not None and self.address >= size:
                         self.error("the address went outside of the addressing space.", self.line) # pyright: ignore[reportArgumentType]
@@ -517,14 +517,11 @@ class Assembler:
                     self.parsed_lines.append(
                         ParsedLine(self.line.strip(),  #  # pyright: ignore[reportAttributeAccessIssue]
                                    self.address,  # pyright: ignore[reportArgumentType]
-                                   self.current_indent_level, len(self.overlooked_part)-1,
-                                   (self.current_pseudo_lines[0] > 0), (current_func is not None))) # type: ignore                    
+                                   self.current_indent_level, self.original_line,
+                                   (self.current_pseudo_lines[0] > 0), (current_func is not None), len(self.overlooked_part))) # type: ignore                    
 
                     self.calc_address(mnemonic)
                 continue
-
-            if self.current_pseudo_lines[0] == 0:
-                self.overlooked_part.append(self.original_line)
 
         if current_func is not None:
             while current_func.parent_func is not None:
@@ -538,13 +535,11 @@ class Assembler:
     def assemble_program(self):
         for self.line_i, self.line in enumerate(self.parsed_lines):
             self.current_indent_level = self.line.indent_level
-            self.current_line_nr = self.line.line_nr
-            self.original_line = self.original_lines[self.line.line_nr]
+            self.original_line = self.line.org_line
             self.address = self.line.address
             colliding_line = next((line for line in self.parsed_lines if line.address == self.address and line != self.line), None)
             if colliding_line is not None:
-                colliding_org_line = self.original_lines[colliding_line.line_nr]
-                self.error(f"collision! the {"instruction" if colliding_line.pseudo else "instructions"} '{self.original_line}' and {"the pseudo instruction" if colliding_line.pseudo else ""} '{colliding_org_line}' share the same address of {hex(self.address)}.", colliding_org_line, colliding_org_line)
+                self.error(f"collision! the {"instruction" if colliding_line.pseudo else "instructions"} '{self.original_line}' and {"the pseudo instruction" if colliding_line.pseudo else ""} '{colliding_line.org_line}' share the same address of {hex(self.address)}.", colliding_line.org_line, colliding_line.org_line)
     
             mnemonic: re.Match = get_mnemonic(self.line.line)                # type: ignore
         
@@ -705,47 +700,51 @@ class Assembler:
         return ops # pyright: ignore[reportReturnType]
 
 
-    def parse_pseudo_inst(self, pseudo_line: str):
-        mnemonic = get_mnemonic(pseudo_line) 
-        syntax = self.isa["syntax"][mnemonic]
+    def parse_pseudo_inst(self, pseudo_line: str, mnemonic):
+        def expand(mnemonic: str, ops: list[str], indent: int, org_mnemonic) -> list[str]:
+            syntax = self.isa["syntax"][mnemonic]
+            if isinstance(syntax, str):
+                syntax = self.isa["syntax temp"][syntax]
 
-        op_part = pseudo_line[len(mnemonic):] # pyright: ignore[reportArgumentType]
-        if isinstance(syntax, str):
-            syntax = self.isa["syntax temp"][syntax]
+            pseudo_syntax = []
+            for part in syntax:
+                var_pad = ["var"]
+                if isinstance(part, list):
+                    var_pad += part
+                else:
+                    var_pad.append(part)
+                pseudo_syntax.append(var_pad)
 
-        pseudo_syntax = []
-        for part in syntax:
-            var_pad = ["var"]
-            if isinstance(part, list):
-                var_pad += part
-            else:
-                var_pad.append(part)
-            pseudo_syntax.append(var_pad)
+            if len(syntax) != len(ops):
+                self.error(f"the instruction '{mnemonic}'{f'from the pseudo instruction \'{org_mnemonic}\'' if org_mnemonic != mnemonic else ""} expects {len(syntax)} operand(s), but got {len(ops)}.", pseudo=True)
 
+            op_types = []
+            op_type = ""
+            for i, exp_op_types in enumerate(pseudo_syntax):
+                ops[i], op_type = self.parse_operand(ops[i], exp_op_types, self.isa["op types"], False)
+                op_types.append(op_type)
+
+            expanded_lines: list[str] = []
+            for line in self.isa["pseudo"][mnemonic]:
+                for i, op in enumerate(ops):
+                    line = line.replace("{" + f"op{i+1}" + "}", op)
+                line_mnemonic = get_mnemonic(line)
+                if line_mnemonic in self.isa["pseudo"]:  # recursive expansion
+                    line_ops = smart_split(line.strip()[len(line_mnemonic):]) # pyright: ignore[reportArgumentType]
+                    expanded_lines.extend(expand(line_mnemonic, line_ops, indent, mnemonic)) # pyright: ignore[reportArgumentType]
+                else:
+                    expanded_lines.append(" " * indent + line)
+            return expanded_lines
+
+        op_part = pseudo_line[len(mnemonic):]  # pyright: ignore[reportArgumentType]
         ops = smart_split(op_part)
 
-        if len(syntax) != len(ops):
-            self.error(f"'{mnemonic}' expects {len(syntax)} operand(s), but got {len(ops)}.", )
+        expanded = expand(mnemonic, ops, self.current_indents[self.current_indent_level], mnemonic) # pyright: ignore[reportArgumentType]
 
-        op_types = []
-        op_type = ""
-        for i, exp_op_types in enumerate(pseudo_syntax):
-            ops[i], op_type = self.parse_operand(ops[i], exp_op_types, self.isa["op types"], False)
-            op_types.append(op_type)
+        for line_i, line in enumerate(expanded):
+            self.lines.insert(line_i + self.line_i + 1, line)
 
-        converted_lines: list[str] = self.isa["pseudo"][mnemonic]
-
-        for line_i, line in enumerate(converted_lines):
-            for i, op in enumerate(ops):
-                line = line.replace("{" + f"op{i+1}" + "}", op) # type: ignore
-
-            self.lines.insert(line_i + self.line_i + 1, (" " * self.current_indents[self.current_indent_level] + line))
-        if self.current_pseudo_lines[0] == 0:
-            self.current_pseudo_lines = [len(converted_lines), self.line]
-        else:
-            self.current_pseudo_lines[0] += len(converted_lines)
-
-        
+        self.current_pseudo_lines = [len(expanded), self.line]
 
     def parse_operands(self, line:str, syntax, mnemonic) -> list[list]:
         op_part = line[len(mnemonic):]
@@ -778,9 +777,9 @@ class Assembler:
         if isinstance(exp_op_types, str):
             exp_op_types = [exp_op_types]
 
+        op = self.get_variable(op)
+        
         if change_op:
-            op = self.get_variable(op)
-
             scope = get_current_scope(self.labels, self.current_indent_level)
             if isinstance(self.line, ParsedLine) and self.line.in_func: # pyright: ignore[reportAttributeAccessIssue]
                 func = next((func for func in self.funcs if self.address in range(func.start_addr, func.stop_addr+1)))
@@ -830,21 +829,21 @@ class Assembler:
         self.error(f"Unknown operand '{op}'.", op)
         
     
-    def error(self, prompt, error_causing_part = "", line_s: str | None = None, non_program_error = False, warn = False):
+    def error(self, prompt, error_causing_part = "", line_s: str | None = None, non_program_error = False, warn = False, pseudo = False):
         level_text = "Warning" if warn else "Error"
         colored_level = colored(level_text, ((255, 165, 0) if warn else "red"), attrs=["bold"])
         column = -1
         line_info = ""
         if not non_program_error:
-            line_i = self.current_line_nr
+            line_i = len(self.overlooked_part) if not isinstance(self.line, ParsedLine) else self.line.line_nr
             if line_s is None:
-                line_s = self.whole_program.splitlines()[line_i]
-            if self.current_pseudo_lines[0] or isinstance(self.line, ParsedLine) and self.line.pseudo:
+                line_s = self.original_line
+            if self.current_pseudo_lines[0] or (isinstance(self.line, ParsedLine) and self.line.pseudo) or pseudo:
                 line_info += f" in pseudo instruction '{get_mnemonic(self.current_pseudo_lines[1])}'"
                 line_s = f"pseudo definition:\n{self.isa['pseudo'][get_mnemonic(self.current_pseudo_lines[1])]}\n\nline:\n{line_s}"
                 #self.current_file = self.isa_file
             
-            line_info += f" at line {colored(line_i + 1, 'cyan')}"
+            line_info += f" at line {colored(line_i + 3, 'cyan')}"
 
             for line in line_s.split("\n"):
                 if (column := line.find(error_causing_part)) > -1:
