@@ -1,0 +1,60 @@
+{
+    "pseudo instructions": {
+        "dbl": [
+            "add {op1} {op1} {op1}"
+        ]
+    },
+    "syntax": {
+        "hlt": [],
+        "dbl": [
+            "reg"
+        ],
+        "add": [
+            "reg",
+            "reg",
+            "reg"
+        ],
+        "cmp": [
+            "reg",
+            "reg"
+        ],
+        "mov": [
+            "reg",
+            "reg"
+        ],
+        "ldi": [
+            "reg",
+            "value"
+        ],
+        "jnn": [
+            "address"
+        ]
+    },
+    "encoding": {
+        "add": [
+            "00aabbcc"
+        ],
+        "cmp": [
+            "00bbaa00"
+        ],
+        "mov": [
+            "00bb00aa"
+        ],
+        "ldi": [
+            "010000aa",
+            "bbbbbbbb"
+        ],
+        "jnn": [
+            "aaaaaaaa"
+        ],
+        "hlt": []
+    },
+    "hardware": {
+        "reg file size": 4,
+        "start pointer addr": 255,
+        "IRQ pointer addr": 254,
+        "memory size": 256,
+        "address width": 8,
+        "inst size": 3
+    }
+}

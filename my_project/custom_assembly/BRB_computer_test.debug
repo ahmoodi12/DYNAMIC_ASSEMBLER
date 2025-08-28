@@ -1,0 +1,360 @@
+00001: ldi sp, 0                                  // machine code: 0xf01b, org line: clr SP
+
+00002: jmp start                                  // machine code: 0x500a, org line: jmp start
+
+00050: bfpc                                       // machine code: 0x34, org line: call clear_reg_file
+
+00051: stoi $0xfefc, r0                           // machine code: 0xfefc0d, org line: call clear_reg_file
+
+00052: stoi $0xfefb, r1                           // machine code: 0xfefb1d, org line: call clear_reg_file
+
+00053: lodpcl r0                                  // machine code: 0x14, org line: call clear_reg_file
+
+00054: lodpch r1                                  // machine code: 0x1024, org line: call clear_reg_file
+
+00055: addi r0, 14, r0                            // machine code: 0xe0009, org line: call clear_reg_file
+
+00056: adci r1, 0, r1                             // machine code: 0x1119, org line: call clear_reg_file
+
+00057: sto $1, r15, r1                            // machine code: 0x1f13b, org line: call clear_reg_file
+
+00058: addi r15, 1, r15                           // machine code: 0x1ff09, org line: call clear_reg_file
+
+00059: sto $1, r15, r0                            // machine code: 0x1f03b, org line: call clear_reg_file
+
+0005A: addi r15, 1, r15                           // machine code: 0x1ff09, org line: call clear_reg_file
+
+0005B: lodi $0xfefc, r0                           // machine code: 0xfefc0c, org line: call clear_reg_file
+
+0005C: lodi $0xfefb, r1                           // machine code: 0xfefb1c, org line: call clear_reg_file
+
+0005D: jmp $65280                                 // machine code: 0xff000a, org line: call clear_reg_file
+
+0005E: lodi $0xfefc, r0                           // machine code: 0xfefc0c, org line: call clear_reg_file
+
+0005F: lodi $0xfefb, r1                           // machine code: 0xfefb1c, org line: call clear_reg_file
+
+00060: ldi r8, 0x80                               // machine code: 0x80801b, org line: ldi r8, 0x80
+
+00061: ldi color, 15                              // machine code: 0xf101b, org line: ldi color, 15
+
+00062: ldi counter, 0x7f                          // machine code: 0x7fe01b, org line: ldi counter, 0x7f
+
+00063: lodi joystick, pos                         // machine code: 0xfefe0c, org line: lodi joystick, pos
+
+00064: sto screen, pos, color                     // machine code: 0xff013b, org line: sto screen, pos, color
+
+00065: subi r14, 1, r14                           // machine code: 0x1ee29, org line: dec counter
+
+00066: jnz skip                                   // machine code: 0x776a, org line: jnz skip
+
+00067: bfpc                                       // machine code: 0x34, org line: call reset_cmd
+
+00068: stoi $0xfefc, r0                           // machine code: 0xfefc0d, org line: call reset_cmd
+
+00069: stoi $0xfefb, r1                           // machine code: 0xfefb1d, org line: call reset_cmd
+
+0006A: lodpcl r0                                  // machine code: 0x14, org line: call reset_cmd
+
+0006B: lodpch r1                                  // machine code: 0x1024, org line: call reset_cmd
+
+0006C: addi r0, 14, r0                            // machine code: 0xe0009, org line: call reset_cmd
+
+0006D: adci r1, 0, r1                             // machine code: 0x1119, org line: call reset_cmd
+
+0006E: sto $1, r15, r1                            // machine code: 0x1f13b, org line: call reset_cmd
+
+0006F: addi r15, 1, r15                           // machine code: 0x1ff09, org line: call reset_cmd
+
+00070: sto $1, r15, r0                            // machine code: 0x1f03b, org line: call reset_cmd
+
+00071: addi r15, 1, r15                           // machine code: 0x1ff09, org line: call reset_cmd
+
+00072: lodi $0xfefc, r0                           // machine code: 0xfefc0c, org line: call reset_cmd
+
+00073: lodi $0xfefb, r1                           // machine code: 0xfefb1c, org line: call reset_cmd
+
+00074: jmp reset_cmd                              // machine code: 0x10000a, org line: call reset_cmd
+
+00075: lodi $0xfefc, r0                           // machine code: 0xfefc0c, org line: call reset_cmd
+
+00076: lodi $0xfefb, r1                           // machine code: 0xfefb1c, org line: call reset_cmd
+
+00077: jmp main_loop                              // machine code: 0x630a, org line: jmp main_loop
+
+01000: ldi counter, 0x7f                          // machine code: 0x7fe01b, org line: ldi counter, 0x7f
+
+01001: ldi r4, 0                                  // machine code: 0x401b, org line: clr r4
+
+01002: ldi exp_char, 99                           // machine code: 0x63301b, org line: ldi exp_char, "c"
+
+01003: bfpc                                       // machine code: 0x34, org line: call find_char
+
+01004: stoi $0xfefc, r0                           // machine code: 0xfefc0d, org line: call find_char
+
+01005: stoi $0xfefb, r1                           // machine code: 0xfefb1d, org line: call find_char
+
+01006: lodpcl r0                                  // machine code: 0x14, org line: call find_char
+
+01007: lodpch r1                                  // machine code: 0x1024, org line: call find_char
+
+01008: addi r0, 14, r0                            // machine code: 0xe0009, org line: call find_char
+
+01009: adci r1, 0, r1                             // machine code: 0x1119, org line: call find_char
+
+0100A: sto $1, r15, r1                            // machine code: 0x1f13b, org line: call find_char
+
+0100B: addi r15, 1, r15                           // machine code: 0x1ff09, org line: call find_char
+
+0100C: sto $1, r15, r0                            // machine code: 0x1f03b, org line: call find_char
+
+0100D: addi r15, 1, r15                           // machine code: 0x1ff09, org line: call find_char
+
+0100E: lodi $0xfefc, r0                           // machine code: 0xfefc0c, org line: call find_char
+
+0100F: lodi $0xfefb, r1                           // machine code: 0xfefb1c, org line: call find_char
+
+01010: jmp find_char                              // machine code: 0x10530a, org line: call find_char
+
+01011: lodi $0xfefc, r0                           // machine code: 0xfefc0c, org line: call find_char
+
+01012: lodi $0xfefb, r1                           // machine code: 0xfefb1c, org line: call find_char
+
+01013: cmpi r4, 1                                 // machine code: 0x14029, org line: cmpi r4, 1
+
+01014: jnz RET                                    // machine code: 0x104b6a, org line: jnz RET
+
+01015: ldi exp_char, 108                          // machine code: 0x6c301b, org line: ldi exp_char, "l"
+
+01016: bfpc                                       // machine code: 0x34, org line: call find_char
+
+01017: stoi $0xfefc, r0                           // machine code: 0xfefc0d, org line: call find_char
+
+01018: stoi $0xfefb, r1                           // machine code: 0xfefb1d, org line: call find_char
+
+01019: lodpcl r0                                  // machine code: 0x14, org line: call find_char
+
+0101A: lodpch r1                                  // machine code: 0x1024, org line: call find_char
+
+0101B: addi r0, 14, r0                            // machine code: 0xe0009, org line: call find_char
+
+0101C: adci r1, 0, r1                             // machine code: 0x1119, org line: call find_char
+
+0101D: sto $1, r15, r1                            // machine code: 0x1f13b, org line: call find_char
+
+0101E: addi r15, 1, r15                           // machine code: 0x1ff09, org line: call find_char
+
+0101F: sto $1, r15, r0                            // machine code: 0x1f03b, org line: call find_char
+
+01020: addi r15, 1, r15                           // machine code: 0x1ff09, org line: call find_char
+
+01021: lodi $0xfefc, r0                           // machine code: 0xfefc0c, org line: call find_char
+
+01022: lodi $0xfefb, r1                           // machine code: 0xfefb1c, org line: call find_char
+
+01023: jmp find_char                              // machine code: 0x10530a, org line: call find_char
+
+01024: lodi $0xfefc, r0                           // machine code: 0xfefc0c, org line: call find_char
+
+01025: lodi $0xfefb, r1                           // machine code: 0xfefb1c, org line: call find_char
+
+01026: cmpi r4, 2                                 // machine code: 0x24029, org line: cmpi r4, 2
+
+01027: jnz RET                                    // machine code: 0x104b6a, org line: jnz RET
+
+01028: ldi exp_char, 114                          // machine code: 0x72301b, org line: ldi exp_char, "r"
+
+01029: bfpc                                       // machine code: 0x34, org line: call find_char
+
+0102A: stoi $0xfefc, r0                           // machine code: 0xfefc0d, org line: call find_char
+
+0102B: stoi $0xfefb, r1                           // machine code: 0xfefb1d, org line: call find_char
+
+0102C: lodpcl r0                                  // machine code: 0x14, org line: call find_char
+
+0102D: lodpch r1                                  // machine code: 0x1024, org line: call find_char
+
+0102E: addi r0, 14, r0                            // machine code: 0xe0009, org line: call find_char
+
+0102F: adci r1, 0, r1                             // machine code: 0x1119, org line: call find_char
+
+01030: sto $1, r15, r1                            // machine code: 0x1f13b, org line: call find_char
+
+01031: addi r15, 1, r15                           // machine code: 0x1ff09, org line: call find_char
+
+01032: sto $1, r15, r0                            // machine code: 0x1f03b, org line: call find_char
+
+01033: addi r15, 1, r15                           // machine code: 0x1ff09, org line: call find_char
+
+01034: lodi $0xfefc, r0                           // machine code: 0xfefc0c, org line: call find_char
+
+01035: lodi $0xfefb, r1                           // machine code: 0xfefb1c, org line: call find_char
+
+01036: jmp find_char                              // machine code: 0x10530a, org line: call find_char
+
+01037: lodi $0xfefc, r0                           // machine code: 0xfefc0c, org line: call find_char
+
+01038: lodi $0xfefb, r1                           // machine code: 0xfefb1c, org line: call find_char
+
+01039: cmpi r4, 3                                 // machine code: 0x34029, org line: cmpi r4, 3
+
+0103A: jnz RET                                    // machine code: 0x104b6a, org line: jnz RET
+
+0103B: bfpc                                       // machine code: 0x34, org line: call reset_screen
+
+0103C: stoi $0xfefc, r0                           // machine code: 0xfefc0d, org line: call reset_screen
+
+0103D: stoi $0xfefb, r1                           // machine code: 0xfefb1d, org line: call reset_screen
+
+0103E: lodpcl r0                                  // machine code: 0x14, org line: call reset_screen
+
+0103F: lodpch r1                                  // machine code: 0x1024, org line: call reset_screen
+
+01040: addi r0, 14, r0                            // machine code: 0xe0009, org line: call reset_screen
+
+01041: adci r1, 0, r1                             // machine code: 0x1119, org line: call reset_screen
+
+01042: sto $1, r15, r1                            // machine code: 0x1f13b, org line: call reset_screen
+
+01043: addi r15, 1, r15                           // machine code: 0x1ff09, org line: call reset_screen
+
+01044: sto $1, r15, r0                            // machine code: 0x1f03b, org line: call reset_screen
+
+01045: addi r15, 1, r15                           // machine code: 0x1ff09, org line: call reset_screen
+
+01046: lodi $0xfefc, r0                           // machine code: 0xfefc0c, org line: call reset_screen
+
+01047: lodi $0xfefb, r1                           // machine code: 0xfefb1c, org line: call reset_screen
+
+01048: jmp $65302                                 // machine code: 0xff160a, org line: call reset_screen
+
+01049: lodi $0xfefc, r0                           // machine code: 0xfefc0c, org line: call reset_screen
+
+0104A: lodi $0xfefb, r1                           // machine code: 0xfefb1c, org line: call reset_screen
+
+0104B: stoi text_disp, r8                         // machine code: 0xfeff8d, org line: stoi text_disp, r8
+
+0104C: stoi $0xfefc, r0                           // machine code: 0xfefc0d, org line: return
+
+0104D: stoi $0xfefb, r1                           // machine code: 0xfefb1d, org line: return
+
+0104E: subi r15, 1, r15                           // machine code: 0x1ff29, org line: return
+
+0104F: lod $1, r15, r0                            // machine code: 0x1f02b, org line: return
+
+01050: subi r15, 1, r15                           // machine code: 0x1ff29, org line: return
+
+01051: lod $1, r15, r1                            // machine code: 0x1f12b, org line: return
+
+01052: jmpr r1, r0                                // machine code: 0x1004, org line: return
+
+01053: lodi keyboard, char_buffer                 // machine code: 0xfefd2c, org line: lodi keyboard, char_buffer
+
+01054: rsh char_buffer, char_buffer               // machine code: 0x2225, org line: rsh char_buffer, char_buffer
+
+01055: cmp char_buffer, exp_char                  // machine code: 0x2302, org line: cmp char_buffer, exp_char
+
+01056: jze found                                  // machine code: 0x10611a, org line: jze found
+
+01057: addi exp_char, 32, exp_char                // machine code: 0x203309, org line: addi exp_char, 32, exp_char
+
+01058: cmp char_buffer, exp_char                  // machine code: 0x2302, org line: cmp char_buffer, exp_char
+
+01059: jze found                                  // machine code: 0x10611a, org line: jze found
+
+0105A: stoi $0xfefc, r0                           // machine code: 0xfefc0d, org line: return
+
+0105B: stoi $0xfefb, r1                           // machine code: 0xfefb1d, org line: return
+
+0105C: subi r15, 1, r15                           // machine code: 0x1ff29, org line: return
+
+0105D: lod $1, r15, r0                            // machine code: 0x1f02b, org line: return
+
+0105E: subi r15, 1, r15                           // machine code: 0x1ff29, org line: return
+
+0105F: lod $1, r15, r1                            // machine code: 0x1f12b, org line: return
+
+01060: jmpr r1, r0                                // machine code: 0x1004, org line: return
+
+01061: addi r4, 1, r4                             // machine code: 0x14409, org line: inc r4
+
+01062: stoi $0xfefc, r0                           // machine code: 0xfefc0d, org line: return
+
+01063: stoi $0xfefb, r1                           // machine code: 0xfefb1d, org line: return
+
+01064: subi r15, 1, r15                           // machine code: 0x1ff29, org line: return
+
+01065: lod $1, r15, r0                            // machine code: 0x1f02b, org line: return
+
+01066: subi r15, 1, r15                           // machine code: 0x1ff29, org line: return
+
+01067: lod $1, r15, r1                            // machine code: 0x1f12b, org line: return
+
+01068: jmpr r1, r0                                // machine code: 0x1004, org line: return
+
+0FF00: ldi r0, 0                                  // machine code: 0x1b, org line: clr r0
+
+0FF01: ldi r1, 0                                  // machine code: 0x101b, org line: clr r1
+
+0FF02: ldi r2, 0                                  // machine code: 0x201b, org line: clr r2
+
+0FF03: ldi r3, 0                                  // machine code: 0x301b, org line: clr r3
+
+0FF04: ldi r4, 0                                  // machine code: 0x401b, org line: clr r4
+
+0FF05: ldi r5, 0                                  // machine code: 0x501b, org line: clr r5
+
+0FF06: ldi r6, 0                                  // machine code: 0x601b, org line: clr r6
+
+0FF07: ldi r7, 0                                  // machine code: 0x701b, org line: clr r7
+
+0FF08: ldi r8, 0                                  // machine code: 0x801b, org line: clr r8
+
+0FF09: ldi r9, 0                                  // machine code: 0x901b, org line: clr r9
+
+0FF0A: ldi r10, 0                                 // machine code: 0xa01b, org line: clr r10
+
+0FF0B: ldi r11, 0                                 // machine code: 0xb01b, org line: clr r11
+
+0FF0C: ldi r12, 0                                 // machine code: 0xc01b, org line: clr r12
+
+0FF0D: ldi r13, 0                                 // machine code: 0xd01b, org line: clr r13
+
+0FF0E: ldi r14, 0                                 // machine code: 0xe01b, org line: clr r14
+
+0FF0F: stoi $0xfefc, r0                           // machine code: 0xfefc0d, org line: return
+
+0FF10: stoi $0xfefb, r1                           // machine code: 0xfefb1d, org line: return
+
+0FF11: subi r15, 1, r15                           // machine code: 0x1ff29, org line: return
+
+0FF12: lod $1, r15, r0                            // machine code: 0x1f02b, org line: return
+
+0FF13: subi r15, 1, r15                           // machine code: 0x1ff29, org line: return
+
+0FF14: lod $1, r15, r1                            // machine code: 0x1f12b, org line: return
+
+0FF15: jmpr r1, r0                                // machine code: 0x1004, org line: return
+
+0FF16: ldi r0, 0                                  // machine code: 0x1b, org line: clr pos
+
+0FF17: sto screen, pos, r5                        // machine code: 0xff053b, org line: sto screen, pos, r5
+
+0FF18: addi r0, 1, r0                             // machine code: 0x10009, org line: inc pos
+
+0FF19: jnc loop                                   // machine code: 0xff175a, org line: jnc loop
+
+0FF1A: stoi $0xfefc, r0                           // machine code: 0xfefc0d, org line: return
+
+0FF1B: stoi $0xfefb, r1                           // machine code: 0xfefb1d, org line: return
+
+0FF1C: subi r15, 1, r15                           // machine code: 0x1ff29, org line: return
+
+0FF1D: lod $1, r15, r0                            // machine code: 0x1f02b, org line: return
+
+0FF1E: subi r15, 1, r15                           // machine code: 0x1ff29, org line: return
+
+0FF1F: lod $1, r15, r1                            // machine code: 0x1f12b, org line: return
+
+0FF20: jmpr r1, r0                                // machine code: 0x1004, org line: return
+

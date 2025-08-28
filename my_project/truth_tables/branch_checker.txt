@@ -1,0 +1,22 @@
+# Logisim PLA program table
+0000xxxx 1 # JMP
+0001xxx1 1 # Z = 1
+0010xx1x 1 # N = 1
+0011xx0x 1 # N = 0
+0100x1xx 1 # C = 1
+0101x0xx 1 # C = 0
+0110xxx0 1 # Z = 0
+01111x1x 1 # S >
+01110x0x 1 # S >
+10000x1x 1 # S ≤
+10001x0x 1 # S ≤
+1000xxx1 1 # S ≤
+1001x0xx 1 # !(C & Z)
+1001xxx0 1 # !(C & Z)
+1010x1xx 1 # C | Z = 1
+1010xxx1 1 # C | Z = 1
+1011xx0x 1 # !(N & Z)
+1011xxx0 1 # !(N & Z)
+11001xxx 1 # OV = 1
+11010xxx 1 # OV = 0
+xxxxxxxx 0 # else

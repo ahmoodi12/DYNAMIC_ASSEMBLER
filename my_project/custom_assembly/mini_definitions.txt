@@ -1,0 +1,84 @@
+
+# condition codes
+.def true,  @0   // always true (unconditional JMP)
+
+# zero flag
+.def z,     @1   // Z = 1 → equal
+.def nz,    @6   // Z = 0 → not equal
+.def eq,     @1   // Z = 1 → equal
+.def neq,    @6   // Z = 0 → not equal
+
+# sign flag
+.def lt,    @2   // N = 1 → signed less than
+.def ge,    @3   // N = 0 → signed greater/equal
+
+# carry flag
+.def cs,    @4   // C = 1 → carry set (unsigned <)
+.def cc,    @5   // C = 0 → carry clear (unsigned ≥)
+
+# combined signed conditions
+.def gt,    @7   // N = 0 & Z = 0 → signed greater than
+.def le,    @8   // N = 1 | Z = 1 → signed less/equal
+
+# combined unsigned conditions
+.def hi,    @9   // C = 0 & Z = 0 → unsigned greater (higher)
+.def ls,    @10  // C = 1 | Z = 1 → unsigned less/equal (lower/same)
+
+# overflow flag
+.def vs,    @12  // OV = 1 → overflow set
+.def vc,    @13  // OV = 0 → overflow clear
+
+
+
+# registers
+.def sp, r13
+.def flags, r14
+.def pc, r15
+
+# mem mappings
+.def text_disp, $0xf6f0
+.def rom_start, $0xf6f1
+.def rom_end, $0xf6f2
+.def buttons, $0xf6f3
+.def keyboard, $0xf6f4
+.def int_ret, $0xf6f6
+.def int_stat, $0xf6f7
+.def BIOS, $0xf700
+.def screen, $0xf800
+
+# flags
+.def flag_K      0x8000
+.def flag_J      0x4000
+.def flag_I      0x2000
+.def flag_H      0x1000
+.def flag_G      0x0800
+.def flag_F      0x0400
+.def flag_E      0x0200
+.def flag_D      0x0100
+.def flag_C      0x0080
+.def flag_B      0x0040
+.def flag_A      0x0020
+.def int_enable  0x0010     # 0x10
+.def overflow    0x0008     # 0x8
+.def carry       0x0004     # 0x4
+.def negativ     0x0002     # 0x2
+.def zero        0x0001     # 0x1
+
+# inverse 
+.def not_flag_K      0x7FFF
+.def not_flag_J      0xBFFF
+.def not_flag_I      0xDFFF
+.def not_flag_H      0xEFFF
+.def not_flag_G      0xF7FF
+.def not_flag_F      0xFBFF
+.def not_flag_E      0xFDFF
+.def not_flag_D      0xFEFF
+.def not_flag_C      0xFF7F
+.def not_flag_B      0xFFBF
+.def not_flag_A      0xFFDF
+.def not_int_enable  0xFFEF
+.def not_overflow    0xFFF7
+.def not_carry       0xFFFB
+.def not_negativ     0xFFFD
+.def not_zero        0xFFFE
+

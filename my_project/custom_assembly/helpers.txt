@@ -1,0 +1,29 @@
+.def screen, $0xff
+.def pos, r0
+
+.org $0xff00
+clear_reg_file:
+    clr r0
+    clr r1
+    clr r2
+    clr r3
+    clr r4
+    clr r5
+    clr r6
+    clr r7
+    clr r8
+    clr r9
+    clr r10
+    clr r11
+    clr r12
+    clr r13
+    clr r14
+    return
+
+reset_screen:
+    clr pos
+    loop:
+        sto screen, pos, r5
+        inc pos
+        jnc loop
+    return
